@@ -1,4 +1,4 @@
-9#
+#
 # Makefile for miscellaneous I2C chip drivers.
 #
 # Do not add new drivers to this directory! It is DEPRECATED.

@@ -474,7 +474,7 @@ static int unix_gid_parse(struct cache_detail *cd,
 {
 	
 	int uid;
-	int gids;
+	int gids = 0;
 	int rv;
 	int i;
 	int err;

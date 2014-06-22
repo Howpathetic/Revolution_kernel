@@ -23,6 +23,8 @@
 
 #include "proc_comm.h"
 
+#define MSM_CSR_BASE		IOMEM(0xFA101000)
+
 static inline void msm_a2m_int(uint32_t irq)
 {
 #if defined(CONFIG_ARCH_MSM7X30)

@@ -441,7 +441,7 @@ static unsigned shooter_u_perf_acpu_table[] = {
 	1836000000,
 };
 
-static struct perflock_platform_data shooter_u_perflock_data = {
+static struct perflock_data shooter_u_perflock_data = {
 	.perf_acpu_table = shooter_u_perf_acpu_table,
 	.table_size = ARRAY_SIZE(shooter_u_perf_acpu_table),
 };
@@ -1147,6 +1147,8 @@ static struct i2c_board_info msm_i2c_gsbi7_mhl_sii9234_info[] =
 		.irq = MSM_GPIO_TO_INT(SHOOTER_U_GPIO_MHL_INT)
 	},
 };
+#undef _GET_REGULATOR
+
 #endif
 #endif
 
@@ -1583,7 +1585,7 @@ static struct platform_device msm_batt_device = {
 	.num_paths = 1, \
 	}
 
-static struct msm_bus_paths pmem_smi_table[] = {
+static struct msm_bus_paths mem_smi_table[] = {
 	[0] = PMEM_BUS_WIDTH(0),
 	[1] = PMEM_BUS_WIDTH(1),
 };
@@ -1682,7 +1684,7 @@ static int shooter_u_ts_atmel_power(int on)
 struct atmel_i2c_platform_data shooter_u_ts_atmel_data[] = {
 	{
 		.version = 0x020,
-		.source = 1,
+		.source = 1, /* ALPS, Nissha */
 		.abs_x_min = 5,
 		.abs_x_max = 1018,
 		.abs_y_min = 7,
@@ -1716,7 +1718,7 @@ struct atmel_i2c_platform_data shooter_u_ts_atmel_data[] = {
 	},
 	{
 		.version = 0x020,
-		.source = 0,
+		.source = 0, /* TPK */
 		.abs_x_min = 5,
 		.abs_x_max = 1018,
 		.abs_y_min = 7,
@@ -1750,7 +1752,7 @@ struct atmel_i2c_platform_data shooter_u_ts_atmel_data[] = {
 	},
 	{
 		.version = 0x016,
-		.source = 1,
+		.source = 1, /* ALPS, Nissha */
 		.abs_x_min = 5,
 		.abs_x_max = 1018,
 		.abs_y_min = 7,
@@ -1781,7 +1783,7 @@ struct atmel_i2c_platform_data shooter_u_ts_atmel_data[] = {
 	},
 	{
 		.version = 0x016,
-		.source = 0,
+		.source = 0, /* TPK */
 		.abs_x_min = 5,
 		.abs_x_max = 1018,
 		.abs_y_min = 7,
