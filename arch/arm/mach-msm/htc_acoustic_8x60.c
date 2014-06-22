@@ -62,7 +62,6 @@
 #define ACOUSTIC_ENABLE_BEATS		_IOW(ACOUSTIC_IOCTL_MAGIC, 42, unsigned)
 #define ACOUSTIC_SET_Q6_EFFECT		_IOW(ACOUSTIC_IOCTL_MAGIC, 43, unsigned)
 #define ACOUSTIC_UPDATE_BEATS_STATUS	_IOW(ACOUSTIC_IOCTL_MAGIC, 47, unsigned)
-#define ACOUSTIC_UPDATE_LISTEN_NOTIFICATION  _IOW(ACOUSTIC_IOCTL_MAGIC, 48, unsigned) 
 
 #define D(fmt, args...) printk(KERN_INFO "[AUD] htc-acoustic: "fmt, ##args)
 #define E(fmt, args...) printk(KERN_ERR "[AUD] htc-acoustic: "fmt, ##args)
@@ -82,7 +81,6 @@ static struct mutex rpc_connect_lock;
 static struct acoustic_ops default_acoustic_ops;
 static struct acoustic_ops *the_ops = &default_acoustic_ops;
 static struct switch_dev sdev_beats;
-static struct switch_dev sdev_listen_notification; 
 
 struct acdb_id {
 	u32 tx_dev_id;
@@ -548,24 +546,6 @@ acoustic_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		switch_set_state(&sdev_beats, new_state);
 		break;
 	}
-	
-	case ACOUSTIC_UPDATE_LISTEN_NOTIFICATION: {
-		int new_state = -1;
-		if (copy_from_user(&new_state, (void *)arg, sizeof(new_state))) {
-			rc = -EFAULT;
-			break;
-		}
-		D("Update listen notification : %d\n", new_state);
-		if (new_state < -1 || new_state > 1) {
-			E("Invalid listen notification state");
-			rc = -EINVAL;
-			break;
-		}
-		sdev_listen_notification.state = -1;
-		switch_set_state(&sdev_listen_notification, new_state);
-		break;
-	}
-	
 	default:
 		rc = -EINVAL;
 	}
@@ -601,11 +581,6 @@ done:
 static ssize_t beats_print_name(struct switch_dev *sdev, char *buf)
 {
 	return sprintf(buf, "Beats\n");
-}
-
-static ssize_t listen_notification_print_name(struct switch_dev *sdev, char *buf)
-{
-	return sprintf(buf, "Listen_notification\n");
 }
 
 static struct file_operations acoustic_fops = {
@@ -711,16 +686,6 @@ static int __init acoustic_init(void)
 		headset_notifier_register(&notifier);
 	}
 #endif
-
-	
-	sdev_listen_notification.name = "Listen_notification";
-	sdev_listen_notification.print_name = listen_notification_print_name;
-	ret = switch_dev_register(&sdev_listen_notification);
-	if (ret < 0) {
-		pr_err("failed to register listen_notification switch device!\n");
-		return ret;
-	}
-	
 
 	return 0;
 err_create_switch_device:

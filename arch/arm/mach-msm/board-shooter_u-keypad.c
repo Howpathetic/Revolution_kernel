@@ -1,6 +1,4 @@
-/* arch/arm/mach-msm/board-shooter_u-keypad.c
- *
- * Copyright (C) 2008 Google, Inc.
+/* Copyright (C) 2008 Google, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,7 +10,7 @@
  * GNU General Public License for more details.
  *
  */
-
+ 
 #include <linux/platform_device.h>
 #include <linux/input.h>
 #include <linux/interrupt.h>
@@ -159,15 +157,7 @@ static struct platform_device shooter_u_keypad_input_device = {
 	},
 };
 
-/*
-static int shooter_u_reset_keys_up[] = {
-	KEY_VOLUMEUP,
-	0
-};
-*/
-
 static struct keyreset_platform_data shooter_u_reset_keys_pdata = {
-	/* .keys_up = shooter_u_reset_keys_up, */
 	.keys_down = {
 		KEY_POWER,
 		KEY_VOLUMEDOWN,

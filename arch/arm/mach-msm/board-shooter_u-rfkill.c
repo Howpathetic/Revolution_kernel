@@ -1,5 +1,4 @@
-/*
- * Copyright (C) 2009 Google, Inc.
+/* Copyright (C) 2009 Google, Inc.
  * Copyright (C) 2010 HTC Corporation.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -12,9 +11,7 @@
  * GNU General Public License for more details.
  *
  */
-
-/* Control bluetooth power for shooter platform */
-
+ 
 #include <linux/platform_device.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -25,61 +22,57 @@
 
 #include <linux/mfd/pmic8058.h>
 #include "board-shooter_u.h"
-/*
-#include <mach/htc_sleep_clk.h>
-*/
 
 static struct rfkill *bt_rfk;
 static const char bt_name[] = "bcm4329";
 
-/* bt on configuration */
 static uint32_t shooter_u_bt_on_table[] = {
 
-	/* BT_RTS */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_UART1_RTS,
 				1,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
-	/* BT_CTS */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_UART1_CTS,
 				1,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
-	/* BT_RX */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_UART1_RX,
 				1,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
-	/* BT_TX */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_UART1_TX,
 				1,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_PULL_UP,
 				GPIO_CFG_2MA),
 
-	/* BT_HOST_WAKE */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_HOST_WAKE,
 				0,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
-	/* BT_CHIP_WAKE */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_CHIP_WAKE,
 				0,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
 
-	/* BT_RESET_N */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_RESET_N,
 				0,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
-	/* BT_SHUTDOWN_N */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_SHUTDOWN_N,
 				0,
 				GPIO_CFG_OUTPUT,
@@ -87,54 +80,53 @@ static uint32_t shooter_u_bt_on_table[] = {
 				GPIO_CFG_2MA),
 };
 
-/* bt off configuration */
 static uint32_t shooter_u_bt_off_table[] = {
 
-	/* BT_RTS */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_UART1_RTS,
 				0,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
-	/* BT_CTS */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_UART1_CTS,
 				0,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_DOWN,
 				GPIO_CFG_2MA),
-	/* BT_RX */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_UART1_RX,
 				0,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_DOWN,
 				GPIO_CFG_2MA),
-	/* BT_TX */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_UART1_TX,
 				0,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
 
-	/* BT_RESET_N */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_RESET_N,
 				0,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
-	/* BT_SHUTDOWN_N */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_SHUTDOWN_N,
 				0,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_2MA),
 
-	/* BT_HOST_WAKE */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_HOST_WAKE,
 				0,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_DOWN,
 				GPIO_CFG_2MA),
-	/* BT_CHIP_WAKE */
+	
 	GPIO_CFG(SHOOTER_U_GPIO_BT_CHIP_WAKE,
 				0,
 				GPIO_CFG_OUTPUT,
@@ -160,24 +152,23 @@ static void shooter_u_config_bt_on(void)
 {
 	printk(KERN_INFO "[BT]-- R ON --\n");
 
-	/* set bt on configuration*/
 	config_bt_table(shooter_u_bt_on_table,
 				ARRAY_SIZE(shooter_u_bt_on_table));
 	mdelay(2);
 
-	/* BT_RESET_N */
+	
 	gpio_set_value(SHOOTER_U_GPIO_BT_RESET_N, 0);
 	mdelay(1);
 
-	/* BT_SHUTDOWN_N */
+	
 	gpio_set_value(SHOOTER_U_GPIO_BT_SHUTDOWN_N, 0);
 	mdelay(5);
 
-	/* BT_SHUTDOWN_N */
+	
 	gpio_set_value(SHOOTER_U_GPIO_BT_SHUTDOWN_N, 1);
 	mdelay(1);
 
-	/* BT_RESET_N */
+	
 	gpio_set_value(SHOOTER_U_GPIO_BT_RESET_N, 1);
 	mdelay(2);
 
@@ -187,33 +178,20 @@ static void shooter_u_config_bt_off(void)
 {
 	printk(KERN_INFO "[BT]-- R OFF --\n");
 
-	/* BT_RESET_N */
 	gpio_set_value(SHOOTER_U_GPIO_BT_RESET_N, 0);
 	mdelay(1);
 
-	/* BT_SHUTDOWN_N */
 	gpio_set_value(SHOOTER_U_GPIO_BT_SHUTDOWN_N, 0);
 	mdelay(1);
 
-	/* set bt off configuration*/
 	config_bt_table(shooter_u_bt_off_table,
 				ARRAY_SIZE(shooter_u_bt_off_table));
 	mdelay(2);
 
-	/* BT_RTS */
 	gpio_set_value(SHOOTER_U_GPIO_BT_UART1_RTS, 0);
 
-	/* BT_CTS */
-
-	/* BT_TX */
 	gpio_set_value(SHOOTER_U_GPIO_BT_UART1_TX, 0);
 
-	/* BT_RX */
-
-
-	/* BT_HOST_WAKE */
-
-	/* BT_CHIP_WAKE */
 	gpio_set_value(SHOOTER_U_GPIO_BT_CHIP_WAKE, 0);
 }
 
@@ -234,9 +212,9 @@ static struct rfkill_ops shooter_u_rfkill_ops = {
 static int shooter_u_rfkill_probe(struct platform_device *pdev)
 {
 	int rc = 0;
-	bool default_state = true; /* off */
+	bool default_state = true; 
 
-#if 0 /* Is this necessary? */
+#if 0
 	rc = gpio_request(SHOOTER_U_GPIO_BT_RESET_N, "bt_reset");
 	if (rc)
 		goto err_gpio_reset;
@@ -245,10 +223,7 @@ static int shooter_u_rfkill_probe(struct platform_device *pdev)
 		goto err_gpio_shutdown;
 #endif
 
-	/* always turn on clock? */
-/*
-	htc_wifi_bt_sleep_clk_ctl(CLK_ON, ID_BT);
-*/
+
 	mdelay(2);
 
 	bluetooth_set_power(NULL, default_state);
@@ -262,7 +237,6 @@ static int shooter_u_rfkill_probe(struct platform_device *pdev)
 
 	rfkill_set_states(bt_rfk, default_state, false);
 
-	/* userspace cannot take exclusive control */
 	rc = rfkill_register(bt_rfk);
 	if (rc)
 		goto err_rfkill_reg;

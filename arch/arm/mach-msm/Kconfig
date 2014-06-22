@@ -746,14 +746,6 @@ config MACH_MSM8X60_DRAGON
 	help
 	  Support for the Qualcomm MSM8x60 Dragon board.
 
-config MACH_SHOOTER_U
-        depends on ARCH_MSM8X60
-        default n
-        bool "Shooter_U"
-        select SMP_PARALLEL_START
-        help
-          Support for the Shooter_U device.
-
 config MACH_MSM8960_SIM
 	depends on ARCH_MSM8960
 	bool "MSM8960 Simulator"
@@ -2612,10 +2604,17 @@ config MACH_MONARUDO
 	  Support for the HTC APQ8064 MONARUDO.
 
 config MACH_VILLEC2
-        depends on ARCH_MSM8X60
-        bool "VILLEC2"
-        help
-          Support for the HTC VILLEC2 device.
+	depends on ARCH_MSM8X60
+	bool "VILLEC2"
+	help
+	  Support for the HTC VILLEC2 device.
+
+config MACH_SHOOTER_U
+	depends on ARCH_MSM8X60
+	default n
+	bool "shooter_u"
+	help
+	  Support for the Shooter_U device.
 
 config HTC_HEADSET_ONE_WIRE
 	tristate "HTC 1-wire headset detection driver"
@@ -2647,4 +2646,3 @@ config IO_FOOTPRINT
 	help
 	  Provides support for light-weight tracing of CPU register read/write
 endif
-
