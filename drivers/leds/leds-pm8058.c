@@ -34,8 +34,6 @@
 #define charming_led_enable(enable) {}
 #endif
 
-//#define LED_DBG_LOG(fmt, ...) \
-//		printk(KERN_DEBUG "[LED] " fmt, ##__VA_ARGS__)
 #define LED_DBG_LOG(fmt, ...) \
 		({ if (0) printk(KERN_DEBUG "[LED] " fmt, ##__VA_ARGS__); })
 #define LED_INFO_LOG(fmt, ...) \
@@ -276,7 +274,7 @@ static void pm8058_drvx_led_brightness_set(struct led_classdev *led_cdev,
 			pwm_disable(ldata->pwm_led);
 		pm8058_pwm_config_led(ldata->pwm_led, id, mode, 0);
 	}
-	LED_INFO_LOG("%s: bank %d brightness %d -\n", __func__, ldata->bank, brightness);
+	LED_DBG_LOG("%s: bank %d brightness %d -\n", __func__, ldata->bank, brightness);
 }
 
 static ssize_t pm8058_led_blink_store(struct device *dev,

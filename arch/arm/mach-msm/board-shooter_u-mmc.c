@@ -35,7 +35,7 @@
 #include "devices.h"
 #include "board-shooter_u.h"
 #include <mach/proc_comm.h>
-#include "board-shooter_u-mmc.h"
+#include "board-shooter-mmc.h"
 #include <mach/mpm.h>
 
 #include <linux/irq.h>
@@ -186,7 +186,6 @@ static struct mmc_platform_data shooter_u_wifi_data = {
 	.msmsdcc_fmid   = 24000000,
 	.msmsdcc_fmax   = 48000000,
 	.nonremovable   = 0,
-	.pclk_src_dfab	= 1,
 };
 
 int shooter_u_wifi_set_carddetect(int val)

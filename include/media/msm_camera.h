@@ -1097,22 +1097,6 @@ struct sensor_calib_data {
 	uint16_t af_pos_inf;
 };
 
-enum msm_sensor_resolution_t {
-	MSM_SENSOR_RES_FULL,
-	MSM_SENSOR_RES_QTR,
-	MSM_SENSOR_RES_VIDEO,
-	MSM_SENSOR_RES_VIDEO_HFR,
-	MSM_SENSOR_RES_16_9,
-	MSM_SENSOR_RES_4_3,
-	MSM_SENSOR_RES_2,
-	MSM_SENSOR_RES_3,
-	MSM_SENSOR_RES_4,
-	MSM_SENSOR_RES_5,
-	MSM_SENSOR_RES_6,
-	MSM_SENSOR_RES_7,
-	MSM_SENSOR_INVALID_RES,
-};
-
 struct msm_sensor_output_info_t {
 	uint16_t x_output;
 	uint16_t y_output;

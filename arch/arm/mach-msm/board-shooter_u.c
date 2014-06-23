@@ -281,6 +281,8 @@ enum {
 	GPIO_EPM_EXPANDER_IO15,
 };
 
+extern int ps_type;
+
 struct pm8xxx_mpp_init_info {
 	unsigned			mpp;
 	struct pm8xxx_mpp_config_data	config;
@@ -1418,7 +1420,7 @@ static struct i2c_board_info msm_tps_65200_boardinfo[] __initdata = {
 };
 #endif
 
-#ifdef CONFIG_I2C_QU
+#ifdef CONFIG_I2C_QUP
 
 static uint32_t gsbi4_gpio_table[] = {
 	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
@@ -1572,6 +1574,11 @@ static struct platform_device msm_batt_device = {
 	.dev.platform_data = &msm_psy_batt_data,
 };
 #endif
+
+static struct platform_device shooter_u_3Dpanel_device = {
+	.name = "panel_3d",
+	.id = -1,
+};
 
 #ifdef CONFIG_ANDROID_PMEM
 #define PMEM_BUS_WIDTH(_bw) \
@@ -2505,6 +2512,95 @@ static void __init pm8901_vreg_mpp0_init(void)
 		pr_err("%s: pm8xxx_mpp_config: rc=%d\n", __func__, rc);
 }
 
+/* Configure Vddp used by headset */
+struct vddp_reg {
+	const char *reg_name;
+	unsigned char set_voltage_sup;
+	unsigned int level;
+	struct regulator *reg;
+	bool enabled;
+	bool always_on;
+	bool op_pwr_mode_sup;
+	unsigned int lpm_uA;
+	unsigned int hpm_uA;
+};
+
+struct vddp_reg vddp_reg_headset = {
+	.reg_name = "8058_l5",
+	.set_voltage_sup = 1,
+	.level = 2850000,
+	.always_on = 1,
+	.op_pwr_mode_sup = 1,
+	.lpm_uA = 2000,
+	.hpm_uA = 16000,
+};
+
+static int headset_vddp_init_reg(struct vddp_reg *vreg)
+{
+	int rc = 0;
+
+	/* Get the regulator handle */
+	vreg->reg = regulator_get(NULL, vreg->reg_name);
+	if (IS_ERR(vreg->reg)) {
+		rc = PTR_ERR(vreg->reg);
+		pr_err("%s: regulator_get(%s) failed. rc=%d\n",
+			__func__, vreg->reg_name, rc);
+		goto out;
+	}
+
+	/* Set the voltage level if required */
+	if (vreg->set_voltage_sup) {
+		rc = regulator_set_voltage(vreg->reg, vreg->level,
+					vreg->level);
+		if (rc) {
+			pr_err("%s: regulator_set_voltage(%s) failed rc=%d\n",
+				__func__, vreg->reg_name, rc);
+			goto vreg_put;
+		}
+	}
+	goto out;
+
+vreg_put:
+	regulator_put(vreg->reg);
+out:
+	return rc;
+}
+
+static int headset_vddp_enable_reg(struct vddp_reg *vreg)
+{
+	int rc;
+
+	if (!vreg->enabled) {
+		rc = regulator_enable(vreg->reg);
+		if (rc) {
+			pr_err("%s: regulator_enable(%s) failed. rc=%d\n",
+				__func__, vreg->reg_name, rc);
+			goto out;
+		}
+		vreg->enabled = 1;
+	}
+
+	/* Put always_on regulator in HPM (high power mode) */
+	if (vreg->always_on && vreg->op_pwr_mode_sup) {
+		rc = regulator_set_optimum_mode(vreg->reg, vreg->hpm_uA);
+		if (rc < 0) {
+			pr_err("%s: reg=%s: HPM setting failed"
+				" hpm_uA=%d, rc=%d\n",
+				__func__, vreg->reg_name,
+				vreg->hpm_uA, rc);
+			goto vreg_disable;
+		}
+		rc = 0;
+	}
+	goto out;
+
+vreg_disable:
+	regulator_disable(vreg->reg);
+	vreg->enabled = 0;
+out:
+	return rc;
+}
+
 static struct platform_device *asoc_devices[] __initdata = {
 	&asoc_msm_pcm,
 	&asoc_msm_dai0,
@@ -2614,6 +2710,10 @@ static struct platform_device *shooter_u_devices[] __initdata = {
 	&msm_tsens_device,
 	&cable_detect_device,
 	&msm8660_rpm_device,
+#ifdef CONFIG_BT
+	&shooter_u_rfkill,	
+#endif
+	
 #ifdef CONFIG_ION_MSM
 	&ion_dev,
 #endif
@@ -3637,7 +3737,6 @@ static void __init msm8x60_init_uart12dm(void)
 	writew(1, fpga_mem + 0xEC);
 	mb();
 	iounmap(fpga_mem);
-#endif
 }
 
 static void __init msm8x60_init_buses(void)
@@ -3670,7 +3769,7 @@ static void __init msm8x60_init_buses(void)
 #ifdef CONFIG_BT
 	bt_export_bd_address();
 #ifdef CONFIG_SERIAL_MSM_HS
-	msm_uart_dm1_pdata.rx_wakeup_irq = gpio_to_irq(SHOOTER_U_GPIO_BT_HOST_WAKE);
+	msm_uart_dm1_pdata.wakeup_irq = gpio_to_irq(SHOOTER_U_GPIO_BT_HOST_WAKE);
 	msm_device_uart_dm1.name = "msm_serial_hs_brcm";
 	msm_device_uart_dm1.dev.platform_data = &msm_uart_dm1_pdata;
 #endif
@@ -4324,7 +4423,9 @@ static struct mmc_platform_data msm8x60_sdc1_data = {
 	.msmsdcc_fmid	= 24000000,
 	.msmsdcc_fmax	= 48000000,
 	.nonremovable	= 1,
-	.pclk_src_dfab	= 1,
+	.hc_erase_group_def = 1,
+	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+	.bkops_support = 1,
 };
 #endif
 
@@ -4348,11 +4449,16 @@ static struct mmc_platform_data msm8x60_sdc3_data = {
 	.msmsdcc_fmid	= 24000000,
 	.msmsdcc_fmax	= 48000000,
 	.nonremovable	= 0,
-	.pclk_src_dfab  = 1,
+	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+
 };
 #endif
 
+static void __init msm8x60_init_mmc(void)
+{
+	int ret = 0;
 #ifdef CONFIG_MMC_MSM_SDC1_SUPPORT
+	/* SDCC1 : eMMC card connected */
 	sdcc_vreg_data[0].vdd_data = &sdcc_vdd_reg_data[0];
 	sdcc_vreg_data[0].vdd_data->reg_name = "8901_l5";
 	sdcc_vreg_data[0].vdd_data->set_voltage_sup = 1;
@@ -4366,7 +4472,6 @@ static struct mmc_platform_data msm8x60_sdc3_data = {
 	sdcc_vreg_data[0].vccq_data->set_voltage_sup = 0;
 	sdcc_vreg_data[0].vccq_data->always_on = 1;
 
-	msm8x60_sdc1_data.swfi_latency = msm_rpm_get_swfi_latency();
 	msm_add_sdcc(1, &msm8x60_sdc1_data);
 #endif
 
@@ -4389,7 +4494,6 @@ static struct mmc_platform_data msm8x60_sdc3_data = {
 	sdcc_vreg_data[2].vddp_data->lpm_uA = 2000;
 	sdcc_vreg_data[2].vddp_data->hpm_uA = 16000;
 
-	msm8x60_sdc3_data.swfi_latency = msm_rpm_get_swfi_latency();
 	msm_add_sdcc(3, &msm8x60_sdc3_data);
 #endif
 
@@ -4398,6 +4502,7 @@ static struct mmc_platform_data msm8x60_sdc3_data = {
 	if (ret != 0)
 		printk(KERN_ERR "%s: Unable to initialize MMC (SDCC4)\n", __func__);
 #endif
+}
 
 struct msm_board_data {
 	struct msm_gpiomux_configs *gpiomux_cfgs;
@@ -4539,7 +4644,7 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	shooter_u_init_fb();
 
 	register_i2c_devices();
-	
+
 	if (ps_type == 1) {
 		i2c_register_board_info(MSM_GSBI10_QUP_I2C_BUS_ID,
 			i2c_isl29028_devices,
@@ -4550,8 +4655,6 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 			ARRAY_SIZE(i2c_isl29029_devices));
 	} else
 		printk(KERN_DEBUG "No Intersil chips\n");
-
-	platform_device_register(&smsc911x_device);
 
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
 
@@ -4570,7 +4673,6 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	msm_auxpcm_init();
 	shooter_u_audio_init();
 	
-	sysinfo_proc_init();
 	properties_kobj = kobject_create_and_add("board_properties", NULL);
 	if (properties_kobj)
 		ret = sysfs_create_group(properties_kobj,
@@ -4603,17 +4705,12 @@ static void __init shooter_u_charm_init_early(void)
 	msm8x60_allocate_memory_regions();
 }
 
-static void __init shooter_u_fixup(struct machine_desc *desc, struct tag *tags,
+static void __init shooter_u_fixup(struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
-	mem_size_mb = parse_tag_memsize((const struct tag *)tags);
-	printk(KERN_DEBUG "%s: mem_size_mb=%u\n", __func__, mem_size_mb);
-
 	mi->nr_banks = 1;
 	mi->bank[0].start = PHY_BASE_ADDR1;
 	mi->bank[0].size = SIZE_ADDR1;
-	if (mem_size_mb == 1024)
-		mi->bank[0].size += 0x10000000;
 }
 
 MACHINE_START(SHOOTER_U, "shooter_u")

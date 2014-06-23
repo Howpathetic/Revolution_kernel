@@ -27,7 +27,6 @@
 #include "qdsp6v2/snddev_hdmi.h"
 #include <mach/htc_acoustic_8x60.h>
 #include "board-shooter_u.h"
-#include "board-shooter_u-audio-data.h"
 #include <mach/qdsp6v2/audio_dev_ctl.h>
 
 #define PM8058_GPIO_BASE					NR_MSM_GPIOS

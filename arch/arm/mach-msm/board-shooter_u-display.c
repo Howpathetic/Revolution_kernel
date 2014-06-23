@@ -62,7 +62,7 @@ static int msm_fb_detect_panel(const char *name)
 	}
 
 	return -ENODEV;
-}
+};
 
 static struct resource msm_fb_resources[] = {
 	{
@@ -827,7 +827,7 @@ int shooter_u_mdp_gamma(void)
 }
 
 static struct msm_panel_common_pdata mdp_pdata = {
-	.gpio = GPIO_LCD_TE,
+	.gpio = 28,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
@@ -838,7 +838,7 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mdp_gamma = shooter_u_mdp_gamma,
 };
 
-void __init shooter_u_mdp_writeback(struct memtype_reserve* reserve_table)
+void __init shooter_u_mdp_writeback(void)
 {
 	mdp_pdata.ov0_wb_size = MSM_FB_OVERLAY0_WRITEBACK_SIZE;
 }
@@ -870,7 +870,8 @@ static int mipi_dsi_panel_power(const int on)
 		
 		if (panel_type == PANEL_ID_SHR_SHARP_NT) {
 			rc = regulator_set_voltage(l12_3v, 3000000, 3000000);
-		else
+		}
+		else {
 			rc = regulator_set_voltage(l12_3v, 3200000, 3200000);
 			if (rc) {
 				PR_DISP_ERR("%s: error setting l12_3v voltage\n", __func__);
@@ -942,7 +943,7 @@ static int mipi_dsi_panel_power(const int on)
 }
 
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
-	.vsync_gpio = GPIO_LCD_TE,
+	.vsync_gpio = 28,
 	.dsi_power_save = mipi_dsi_panel_power,
 };
 
@@ -980,6 +981,11 @@ static char novatek_pwm_cp2[2] = {0xc9, 0x01 };
 static char novatek_pwm_cp3[2] = {0xff, 0xaa };
 static char max_pktsize[2] =  {MIPI_DSI_MRPS, 0x00};
 static unsigned char bkl_enable_cmds[] = {0x53, 0x24};
+
+static struct dsi_cmd_desc novatek_display_on_cmds[] = {
+	{DTYPE_DCS_WRITE, 1, 0, 0, 0,
+		sizeof(display_on), display_on},
+};
 
 static struct dsi_cmd_desc shr_sharp_cmd_on_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 10,
@@ -1065,7 +1071,7 @@ static int shooter_u_lcd_on(struct platform_device *pdev)
 				printk(KERN_INFO "shooter_u_lcd_on PANEL_ID_SHR_SHARP_NT\n");
 				cmdreq.cmds = shr_sharp_cmd_on_cmds;
 				cmdreq.cmds_cnt = ARRAY_SIZE(shr_sharp_cmd_on_cmds);
-				cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
+				cmdreq.flags = CMD_REQ_COMMIT;
 				cmdreq.rlen = 0;
 				cmdreq.cb = NULL;
 				
@@ -1084,7 +1090,7 @@ static void shooter_u_display_on(struct msm_fb_data_type *mfd)
 {
 	cmdreq.cmds = novatek_display_on_cmds;
 	cmdreq.cmds_cnt = ARRAY_SIZE(novatek_display_on_cmds);
-	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
+	cmdreq.flags = CMD_REQ_COMMIT;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 
@@ -1095,7 +1101,7 @@ static void shooter_u_display_off(struct msm_fb_data_type *mfd)
 {
 	cmdreq.cmds = novatek_display_off_cmds;
 	cmdreq.cmds_cnt = ARRAY_SIZE(novatek_display_off_cmds);
-	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
+	cmdreq.flags = CMD_REQ_COMMIT;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 
@@ -1207,7 +1213,7 @@ static void shooter_u_set_backlight(struct msm_fb_data_type *mfd)
 
 	cmdreq.cmds = novatek_cmd_backlight_cmds;
 	cmdreq.cmds_cnt = ARRAY_SIZE(novatek_cmd_backlight_cmds);
-	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
+	cmdreq.flags = CMD_REQ_COMMIT;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 
@@ -1365,15 +1371,14 @@ static int __init shooter_u_panel_init(void)
 		PR_DISP_INFO("%s: panel ID = PANEL_ID_PYD_SHARP\n", __func__);
 		mipi_cmd_novatek_blue_qhd_pt_init();
 	}
-	else if { (panel_type == PANEL_ID_SHR_SHARP_OTM) {
-		PR_DISP_INFO("%s: panel ID = PANEL_ID_SHR_SHARP_OTM, __func__);
+	else if (panel_type == PANEL_ID_SHR_SHARP_OTM) {
+		PR_DISP_INFO("%s: panel ID = PANEL_ID_SHR_SHARP_OTM\n", __func__);
 		mipi_cmd_novatek_blue_qhd_pt_init();
 		}
-	else (panel_type == PANEL_ID_SHR_SHARP_OTM_C2) {
-		PR_DISP_INFO("%s: panel ID = PANEL_ID_SHR_SHARP_OTM_C2, __func__);
+	else if (panel_type == PANEL_ID_SHR_SHARP_OTM_C2) {
+		PR_DISP_INFO("%s: panel ID = PANEL_ID_SHR_SHARP_OTM_C2\n", __func__);
 		mipi_cmd_novatek_blue_qhd_pt_init();
 		}
-	}
 	else {
 		PR_DISP_ERR("%s: panel not supported!\n", __func__);
 		return -ENODEV;
@@ -1413,7 +1418,7 @@ static void shooter_u_3Dpanel_on(bool bLandscape)
 	if (bLandscape) {
 		gpio_set_value(SHOOTER_U_CTL_3D_1, 1);
 		gpio_set_value(SHOOTER_U_CTL_3D_2, 1);
-		gpio_set_value(SHOOTER_U_UCTL_3D_3, 1);
+		gpio_set_value(SHOOTER_U_CTL_3D_3, 1);
 		gpio_set_value(SHOOTER_U_CTL_3D_4, 0);
 	} else {
 		gpio_set_value(SHOOTER_U_CTL_3D_1, 1);

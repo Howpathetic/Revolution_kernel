@@ -31,6 +31,7 @@
 #include <linux/leds.h>
 #endif
 
+static unsigned int engineerid;
 static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power);
 static int camera_sensor_power_disable(struct regulator *sensor_power);
 static struct platform_device msm_camera_server = {
@@ -482,11 +483,11 @@ static void shooter_u_config_camera_off_gpios(void)
 		config_gpio_table(camera_off_gpio_table_sp3d,
 			ARRAY_SIZE(camera_off_gpio_table_sp3d));
 	}
-	shooter_u_set_gpio(SHOOTER_U_SP3D_SPI_DO, 0);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_SPI_CS, 0);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_SPI_CLK, 0);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_MCLK, 0);
-	shooter_u_set_gpio(SHOOTER_U_CAM_SEL, 0);
+	gpio_set_value(SHOOTER_U_SP3D_SPI_DO, 0);
+	gpio_set_value(SHOOTER_U_SP3D_SPI_CS, 0);
+	gpio_set_value(SHOOTER_U_SP3D_SPI_CLK, 0);
+	gpio_set_value(SHOOTER_U_SP3D_MCLK, 0);
+	gpio_set_value(SHOOTER_U_CAM_SEL, 0);
 }
 
 #ifdef CONFIG_QS_S5K4E1
@@ -505,7 +506,7 @@ static int shooter_u_qs_s5k4e1_vreg_on(void)
 	udelay(50);
 		
 	if (system_rev == 0x80) {
-		rc = camera_sensor_power_enable_8901("8901_lvs3", 1800000, &shooter_u_reg_8901_lvs3);
+		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) == %d\n", rc);
 		if (rc < 0) {
 			pr_err("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) FAILED %d\n", rc);
@@ -513,7 +514,7 @@ static int shooter_u_qs_s5k4e1_vreg_on(void)
 		}
 		mdelay(10);
 
-		rc = camera_sensor_power_enable_8901("8901_lvs2", 1800000, &shooter_u_reg_8901_lvs2);
+		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) == %d\n", rc);
 		if (rc < 0) {
 			pr_err("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) FAILED %d\n", rc);
@@ -544,9 +545,9 @@ static int shooter_u_qs_s5k4e1_vreg_on(void)
 	}
 	udelay(50);
 	
-	shooter_u_set_gpio(SHOOTER_U_S5K4E1_INTB, 1);
-	shooter_u_set_gpio(SHOOTER_U_S5K4E1_PD, 1);
-	shooter_u_set_gpio(SHOOTER_U_S5K4E1_VCM_PD, 1);
+	gpio_set_value(SHOOTER_U_S5K4E1_INTB, 1);
+	gpio_set_value(SHOOTER_U_S5K4E1_PD, 1);
+	gpio_set_value(SHOOTER_U_S5K4E1_VCM_PD, 1);
 	
 	shooter_u_config_camera_on_gpios();
 	
@@ -567,9 +568,9 @@ static int shooter_u_qs_s5k4e1_vreg_off(void)
 {
 	int rc = 0;
 	pr_info("[CAM] %s\n", __func__, system_rev);
-	shooter_u_set_gpio(SHOOTER_U_S5K4E1_INTB, 0);
-	shooter_u_set_gpio(SHOOTER_U_S5K4E1_VCM_PD, 0);
-	shooter_u_set_gpio(SHOOTER_U_S5K4E1_PD, 0);
+	gpio_set_value(SHOOTER_U_S5K4E1_INTB, 0);
+	gpio_set_value(SHOOTER_U_S5K4E1_VCM_PD, 0);
+	gpio_set_value(SHOOTER_U_S5K4E1_PD, 0);
 	
 	rc = camera_sensor_power_disable(shooter_u_reg_8058_l10);
 	pr_info("[CAM] camera_sensor_power_disable(\"8058_l10\", 2.8V) == %d\n", rc);
@@ -691,7 +692,7 @@ static int shooter_u_sp3d_vreg_on(void)
 	pr_info("[CAM] %s %d\n", __func__, system_rev);
 
 	if (system_rev == 0x80) {
-		rc = camera_sensor_power_enable_8901("8901_lvs2", 1800000, &shooter_u_reg_8901_lvs2);
+		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) == %d\n", rc);
 		if (rc < 0) {
 			pr_err("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) FAILED %d\n", rc);
@@ -699,7 +700,7 @@ static int shooter_u_sp3d_vreg_on(void)
 		}
 		udelay(26);
 
-		rc = camera_sensor_power_enable_8901("8901_lvs3", 1800000, &shooter_u_reg_8901_lvs3);
+		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) == %d\n", rc);
 		if (rc < 0) {
 			pr_err("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) FAILED %d\n", rc);
@@ -722,10 +723,10 @@ static int shooter_u_sp3d_vreg_on(void)
 		}
 	}
 	
-	shooter_u_set_gpio(SHOOTER_U_SP3D_CORE_GATE, 1);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_SYS_RST, 1);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_PDX, 1);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_GATE, 1);
+	gpio_set_value(SHOOTER_U_SP3D_CORE_GATE, 1);
+	gpio_set_value(SHOOTER_U_SP3D_SYS_RST, 1);
+	gpio_set_value(SHOOTER_U_SP3D_PDX, 1);
+	gpio_set_value(SHOOTER_U_SP3D_GATE, 1);
 	
 	rc = camera_sensor_power_enable("8058_l15", 2800000, &shooter_u_reg_8058_l15);
 	pr_info("[CAM] sensor_power_enable(\"8058_l15\", 2.8V) == %d\n", rc);
@@ -764,8 +765,8 @@ init_fail:
 static int shooter_u_sp3d_vreg_off(void)
 {
 	int rc = 0;
-	pr_info("[CAM] %s\n", __func__, system_rev);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_PDX, 0);
+	pr_info("[CAM] %s\n", __func__);
+	gpio_set_value(SHOOTER_U_SP3D_PDX, 0);
 
 	rc = camera_sensor_power_disable(shooter_u_reg_8058_l10);
 	pr_info("[CAM] camera_sensor_power_disable(\"8058_l10\", 2.8V) == %d\n", rc);
@@ -800,9 +801,9 @@ static int shooter_u_sp3d_vreg_off(void)
 			goto init_fail;
 		}
 		
-	shooter_u_set_gpio(SHOOTER_U_SP3D_SYS_RST, 0);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_CORE_GATE, 0);
-	shooter_u_set_gpio(SHOOTER_U_SP3D_GATE, 0);
+	gpio_set_value(SHOOTER_U_SP3D_SYS_RST, 0);
+	gpio_set_value(SHOOTER_U_SP3D_CORE_GATE, 0);
+	gpio_set_value(SHOOTER_U_SP3D_GATE, 0);
 	
 	if (system_rev == 0x80)
 		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs2);
@@ -881,24 +882,32 @@ static struct msm_camera_sensor_info msm_camera_sensor_sp3d_data = {
 	.use_rawchip = RAWCHIP_DISABLE,
 	.flash_cfg = &msm_camera_sensor_sp3d_flash_cfg,
 };
+
+struct platform_device msm_camera_sensor_sp3d = {
+	.name	= "msm_camera_sp3d",
+	.dev	= {
+		.platform_data = &msm_camera_sensor_sp3d_data,
+	},
+};
+
 #endif
 
 #ifdef CONFIG_S5K6AAFX
 static int shooter_u_s5k6aafx_vreg_on(void)
 {
 	int rc = 0;
-	pr_info("[CAM] %s\n", __func__, system_rev);
+	pr_info("[CAM] %s\n", __func__);
 	
-	rc = camera_sensor_power_enable("8058_l6", 2850000, &shooter_u_reg_8058_l6);
-	pr_info("[CAM] sensor_power_enable(\"8058_l6\", 2.8V) == %d\n", rc);
+	rc = camera_sensor_power_enable("8901_l6", 2850000, &shooter_u_reg_8901_l6);
+	pr_info("[CAM] sensor_power_enable(\"8901_l6\", 2.8V) == %d\n", rc);
 	if (rc < 0) {
-		pr_err("[CAM] sensor_power_enable(\"8058_l6\", 2.8V) FAILED %d\n", rc);
+		pr_err("[CAM] sensor_power_enable(\"8901_l6\", 2.8V) FAILED %d\n", rc);
 		goto init_fail;
 	}
 	mdelay(5);
 	
 	if (system_rev == 0x80) {
-		rc = camera_sensor_power_enable_8901("8901_lvs2", 1800000, &shooter_u_reg_8901_lvs2);
+		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) == %d\n", rc);
 		if (rc < 0) {
 			pr_err("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) FAILED %d\n", rc);
@@ -906,7 +915,7 @@ static int shooter_u_s5k6aafx_vreg_on(void)
 		}
 		mdelay(10);
 
-		rc = camera_sensor_power_enable_8901("8901_lvs3", 1800000, &shooter_u_reg_8901_lvs3);
+		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) == %d\n", rc);
 		if (rc < 0) {
 			pr_err("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) FAILED %d\n", rc);
@@ -948,7 +957,7 @@ init_fail:
 static int shooter_u_s5k6aafx_vreg_off(void)
 {
 	int rc = 0;
-	pr_info("[CAM] %s\n", __func__, system_rev);
+	pr_info("[CAM] %s\n", __func__);
 	
 	if (system_rev == 0x80) {
 		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs3);
@@ -984,10 +993,10 @@ static int shooter_u_s5k6aafx_vreg_off(void)
 		mdelay(1);
 	}
 	
-	rc = camera_sensor_power_disable(shooter_u_reg_8058_l6);
-	pr_info("[CAM] camera_sensor_power_disable(\"8058_l6\", 2.8V) == %d\n", rc);
+	rc = camera_sensor_power_disable(shooter_u_reg_8901_l6);
+	pr_info("[CAM] camera_sensor_power_disable(\"8901_l6\", 2.8V) == %d\n", rc);
 	if (rc < 0) {
-		pr_err("[CAM] sensor_power_disable(\"8058_l6\") FAILED %d\n", rc);
+		pr_err("[CAM] sensor_power_disable(\"8901_l6\") FAILED %d\n", rc);
 		goto init_fail;
 	}
 	

@@ -750,8 +750,9 @@ struct input_keymap_entry {
 #define SW_KEYPAD_SLIDE		0x0a  
 #define SW_FRONT_PROXIMITY	0x0b  
 #define SW_ROTATE_LOCK		0x0c  
-#define SW_LINEIN_INSERT	0x0d  
-#define SW_HPHL_OVERCURRENT    0x0e  
+#define SW_LINEIN_INSERT	0x0d
+#define SW_CAM			0x0e  /* set = 3D/Video mode for camera */
+//#define SW_HPHL_OVERCURRENT    0x0e  
 #define SW_HPHR_OVERCURRENT    0x0f  
 #define SW_UNSUPPORT_INSERT	0x10  
 #define SW_MAX			0x20

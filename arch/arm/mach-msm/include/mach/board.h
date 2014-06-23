@@ -83,6 +83,8 @@ struct msm_camera_csi_params {
 	uint8_t lane_assign;
 	uint8_t settle_cnt;
 	uint8_t dpcm_scheme;
+	uint8_t mipi_driving_strength;/*from 0-3*/
+	uint8_t hs_impedence;
 };
 
 #ifdef CONFIG_SENSORS_MT9T013
@@ -357,6 +359,9 @@ struct msm_camera_sensor_info {
 	int sensor_pwd;
 	int vcm_pwd;
 	int vcm_enable;
+#ifdef CONFIG_CAMERA_3D
+	uint8_t stereo_low_cap_limit;
+#endif
 	int mclk;
 	int flash_type;
 	struct msm_camera_sensor_platform_info *sensor_platform_info;
@@ -582,6 +587,7 @@ struct msm_fb_platform_data {
 	int (*allow_set_offset)(void);
 	char prim_panel_name[PANEL_NAME_MAX_LEN];
 	char ext_panel_name[PANEL_NAME_MAX_LEN];
+	bool     is_3d_panel;
 };
 
 #define HDMI_VFRMT_640x480p60_4_3 0
