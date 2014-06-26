@@ -35,10 +35,8 @@
 #include <mach/vreg.h>
 #include "s5k6aafx.h"
 #include <linux/slab.h>
-#include "msm_sensor.h"
 
-#define SENSOR_NAME "s5k6aafx"
-#define PLATFORM_DRIVER_NAME "msm_camera_s5k6aafx"
+#include "msm_sensor.h"
 
 struct s5k6aafx_work {
 	struct work_struct work;

@@ -43,11 +43,6 @@
 #include <linux/ethtool.h>
 #include <linux/fcntl.h>
 #include <linux/fs.h>
-#include <linux/ioprio.h>
-
-#ifdef CONFIG_PERFLOCK
-#include <mach/perflock.h>
-#endif
 
 #include <asm/uaccess.h>
 #include <asm/unaligned.h>
@@ -1477,23 +1472,6 @@ dhd_watchdog(ulong data)
 	dhd_os_sdunlock(&dhd->pub);
 }
 
-//HTC_CSP_START
-extern int wlan_ioprio_idle;
-static int prev_wlan_ioprio_idle=0;
-static inline void set_wlan_ioprio(void)
-{
-        int ret, prio;
-
-        if(wlan_ioprio_idle == 1){
-                prio = ((IOPRIO_CLASS_IDLE << IOPRIO_CLASS_SHIFT) | 0);
-        } else {
-                prio = ((IOPRIO_CLASS_NONE << IOPRIO_CLASS_SHIFT) | 4);
-        }
-        ret = set_task_ioprio(current, prio);
-        DHD_DEFAULT(("set_wlan_ioprio: prio=0x%X, ret=%d\n", prio, ret));
-}
-//HTC_CSP_END
-
 static int
 dhd_dpc_thread(void *data)
 {
@@ -1516,12 +1494,6 @@ dhd_dpc_thread(void *data)
 
 	/* Run until signal received */
 	while (1) {
-        //HTC_CSP_START
-        if(prev_wlan_ioprio_idle != wlan_ioprio_idle){
-            set_wlan_ioprio();
-            prev_wlan_ioprio_idle = wlan_ioprio_idle;
-        }
-        //HTC_CSP_END
 		if (down_interruptible(&dhd->dpc_sem) == 0) {
 			/* Call bus dpc unless it indicated down (then clean stop) */
 			if (dhd->pub.busstate != DHD_BUS_DOWN) {
@@ -2403,7 +2375,11 @@ static struct net_device_ops dhd_ops_pri = {
 	.ndo_do_ioctl = dhd_ioctl_entry,
 	.ndo_start_xmit = dhd_start_xmit,
 	.ndo_set_mac_address = dhd_set_mac_address,
-	.ndo_set_multicast_list = dhd_set_multicast_list
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0))
+	.ndo_set_rx_mode = dhd_set_multicast_list,
+#else
+	.ndo_set_multicast_list = dhd_set_multicast_list,
+#endif
 };
 
 static struct net_device_ops dhd_ops_virt = {
@@ -2411,11 +2387,15 @@ static struct net_device_ops dhd_ops_virt = {
 	.ndo_do_ioctl = dhd_ioctl_entry,
 	.ndo_start_xmit = dhd_start_xmit,
 	.ndo_set_mac_address = dhd_set_mac_address,
-	.ndo_set_multicast_list = dhd_set_multicast_list
-};
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0))
+	.ndo_set_rx_mode = dhd_set_multicast_list,
+#else
+	.ndo_set_multicast_list = dhd_set_multicast_list,
+#endif
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)) */
-int
-dhd_net_attach(dhd_pub_t *dhdp, int ifidx)
+};
+
+int dhd_net_attach(dhd_pub_t *dhdp, int ifidx)
 {
 	dhd_info_t *dhd = (dhd_info_t *)dhdp->info;
 	struct net_device *net;
@@ -2625,11 +2605,11 @@ dhd_detach(dhd_pub_t *dhdp)
 	}
 }
 }
-extern struct perf_lock wlan_perf_lock;
 extern void disable_dev_wlc_ioctl(void);
 #ifdef CONFIG_MACH_VERDI_LTE
 extern void enable_hlt(void);
 #endif
+extern void wlan_unlock_perf(void);
 static void __exit
 dhd_module_cleanup(void)
 {
@@ -2646,14 +2626,11 @@ dhd_module_cleanup(void)
 	dhd_bus_unregister();
 #if defined(CUSTOMER_HW2) && defined(CONFIG_WIFI_CONTROL_FUNC)
 	wifi_del_dev();
-#endif
-#ifdef CONFIG_PERFLOCK
-        if (is_perf_lock_active(&wlan_perf_lock)){
-            perf_unlock(&wlan_perf_lock);			
+#endif	
+	wlan_unlock_perf();
 #ifdef CONFIG_MACH_VERDI_LTE
             enable_hlt();
             printf("unlock cpu && enable_hlt-2\n");
-#endif
         }
 #endif
 	/* Call customer gpio to turn off power with WL_REG_ON signal */

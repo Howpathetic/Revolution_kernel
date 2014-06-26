@@ -1113,7 +1113,6 @@ enum msm_sensor_resolution_t {
 	MSM_SENSOR_INVALID_RES,
 };
 
-
 struct msm_sensor_output_info_t {
 	uint16_t x_output;
 	uint16_t y_output;
@@ -1160,6 +1159,7 @@ struct cord {
 	uint32_t y;
 };
 
+#if 1 
 enum antibanding_mode{
 	CAMERA_ANTI_BANDING_50HZ,
 	CAMERA_ANTI_BANDING_60HZ,
@@ -1240,6 +1240,7 @@ enum sensor_af_mode{
 	SENSOR_AF_MODE_NORMAL,
 	SENSOR_AF_MODE_MACRO,
 };
+#endif 
 
 struct fuse_id{
 	uint32_t fuse_id_word1;
@@ -1253,50 +1254,6 @@ typedef struct{
     uint16_t med;
     uint16_t max;
 }vcm_pos;
-
-// 		struct sensor_init_cfg init_info;
-// 		struct sensor_pict_fps gfps;
-// 		struct exp_gain_cfg exp_gain;
-// 		struct focus_cfg focus;
-// 		struct fps_cfg fps;
-// 		struct wb_info_cfg wb_info;
-// 		struct sensor_3d_exp_cfg sensor_3d_exp;
-// 		struct sensor_calib_data calib_info;
-// 		struct sensor_output_info_t output_info;
-// 		struct sensor_eeprom_data_t eeprom_data;
-// 		
-// 		uint16_t antibanding;
-// 		uint8_t contrast;
-// 		uint8_t saturation;
-// 		uint8_t sharpness;
-// 		int8_t brightness;
-// 		int ae_mode;
-// 		uint8_t wb_val;
-// 		int8_t exp_compensation;
-// 		struct cord aec_cord;
-// 		int is_autoflash;
-// 		struct mirror_flip mirror_flip;
-// 
-// 		
-// 		
-// 		struct fuse_id fuse;
-// 		
-// 		vcm_pos calib_vcm_pos; 
-// #if 1 
-// 		enum antibanding_mode antibanding_value;
-// 		enum brightness_t brightness_value;
-// 		enum frontcam_t frontcam_value;
-// 		enum wb_mode wb_value;
-// 		enum iso_mode iso_value;
-// 		enum sharpness_mode sharpness_value;
-// 		enum saturation_mode saturation_value;
-// 		enum contrast_mode contrast_value;
-// 		enum qtr_size_mode qtr_size_mode_value;
-// 		enum sensor_af_mode af_mode_value;
-// #endif 
-// 
-// 	} cfg;
-// };
 
 #ifdef CONFIG_CAMERA_3D
 enum bestshot_mode {
@@ -1414,12 +1371,13 @@ struct sensor_cfg_data {
 		struct sensor_calib_data calib_info;
 #endif
 
+		struct sensor_output_info_t output_info;
+		struct sensor_eeprom_data_t eeprom_data;
 		struct fuse_id fuse;
 		struct lsc_cfg lsctable;/*Vincent for LSC calibration*/
 		struct otp_cfg sp3d_otp_cfg;
 		struct flash_cfg flash_data;
 		struct exp_cfg exp_info;
- 		struct sensor_output_info_t output_info;
 		/* For 2nd CAM */
 		enum antibanding_mode antibanding_value;
 		enum brightness_t brightness_value;

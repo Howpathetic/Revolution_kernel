@@ -15,6 +15,7 @@
 #include "msm_camera_i2c.h"
 
 struct msm_camera_eeprom_client;
+struct sensor_eeprom_data_t;
 
 struct msm_camera_eeprom_fn_t {
 	int32_t (*eeprom_init)
