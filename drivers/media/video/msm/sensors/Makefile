@@ -27,14 +27,8 @@ obj-$(CONFIG_OV5693) += ov5693_v4l2.o
 obj-$(CONFIG_S5K6A2YA) += s5k6a2ya_v4l2.o
 obj-$(CONFIG_MT9V113) += mt9v113_v4l2.o mt9v113_reg_lens_9251.o
 
-obj-$(CONFIG_SP3D) += sp3d.o
 obj-$(CONFIG_S5K6AAFX) += s5k6aafx.o
+obj-$(CONFIG_SP3D) += sp3d.o
 obj-$(CONFIG_QS_S5K4E1) += qs_s5k4e1.o
+obj-$(CONFIG_MACH_SHOOTER_U) += sp3d_reg_3d.o sp3d_reg_2d.o sp3d_reg_com.o sp3d_reg_cal.o s5k6aafx_reg_shooter.o qs_s5k4e1_reg.o s5k6aafx_reg_shooter_cob.o
 
-obj-$(CONFIG_SP3D_REG_3D) += sp3d_reg_3d.o
-obj-$(CONFIG_SP3D_REG_2D) += sp3d_reg_2d.o
-obj-$(CONFIG_SP3D_REG_COM) += sp3d_reg_com.o
-obj-$(CONFIG_SP3D_REG_CAL) += sp3d_reg_cal.o
-obj-$(CONFIG_S5K6AAFX_REG_SHOOTER) += s5k6aafx_reg_shooter.o
-obj-$(CONFIG_S5K6AAFX_REG_SHOOTER_COB) += s5k6aafx_reg_shooter_cob.o
-obj-$(CONFIG_QS_SKK4E1_REG) += qs_s5k4e1_reg.o
