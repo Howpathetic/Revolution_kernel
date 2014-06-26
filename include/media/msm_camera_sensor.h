@@ -36,40 +36,40 @@
 #define CFG_GET_PICT_P_PL		25
 #define CFG_GET_AF_MAX_STEPS		26
 #define CFG_GET_PICT_MAX_EXP_LC		27
-#define CFG_I2C_IOCTL_R_OTP	28
+// #define CFG_I2C_IOCTL_R_OTP	28
 #define CFG_SET_OV_LSC	29
-#define CFG_SET_SHARPNESS 30
-#define CFG_SET_SATURATION 31
-#define CFG_SET_OV_LSC_RAW_CAPTURE 32
-#define CFG_SET_ISO			33
-#define CFG_SET_COORDINATE		34
-#define CFG_RUN_AUTO_FOCUS		35
-#define CFG_CANCEL_AUTO_FOCUS		36
-#define CFG_GET_EXP_FOR_LED		37
-#define CFG_UPDATE_AEC_FOR_LED		38
-#define CFG_SET_FRONT_CAMERA_MODE	39
-#define CFG_SET_QCT_LSC_RAW_CAPTURE 40
-#define CFG_SET_QTR_SIZE_MODE		41
-#define CFG_GET_AF_STATE		42
-#define CFG_SET_DMODE			43
-#define CFG_SET_CALIBRATION	44
-#define CFG_SET_AF_MODE		45
-#define CFG_GET_SP3D_L_FRAME	46
-#define CFG_GET_SP3D_R_FRAME	47
-#define CFG_SET_FLASHLIGHT		48
-#define CFG_SEND_WB_INFO        49
-#define CFG_SET_FLASHLIGHT_EXP_DIV 50
-#define CFG_GET_ISO             51
-#define CFG_GET_EXP_GAIN	52
-#define CFG_SET_FRAMERATE 	53
+// #define CFG_SET_SHARPNESS 30
+// #define CFG_SET_SATURATION 31
+// #define CFG_SET_OV_LSC_RAW_CAPTURE 32
+// #define CFG_SET_ISO			33
+// #define CFG_SET_COORDINATE		34
+// #define CFG_RUN_AUTO_FOCUS		35
+// #define CFG_CANCEL_AUTO_FOCUS		36
+// #define CFG_GET_EXP_FOR_LED		37
+// #define CFG_UPDATE_AEC_FOR_LED		38
+// #define CFG_SET_FRONT_CAMERA_MODE	39
+// #define CFG_SET_QCT_LSC_RAW_CAPTURE 40
+// #define CFG_SET_QTR_SIZE_MODE		41
+// #define CFG_GET_AF_STATE		42
+// #define CFG_SET_DMODE			43
+// #define CFG_SET_CALIBRATION	44
+// #define CFG_SET_AF_MODE		45
+// #define CFG_GET_SP3D_L_FRAME	46
+// #define CFG_GET_SP3D_R_FRAME	47
+// #define CFG_SET_FLASHLIGHT		48
+// #define CFG_SEND_WB_INFO        49
+// #define CFG_SET_FLASHLIGHT_EXP_DIV 50
+// #define CFG_GET_ISO             51
+// #define CFG_GET_EXP_GAIN	52
+// #define CFG_SET_FRAMERATE 	53
 
 #ifdef CONFIG_CAMERA_3D
-#define CFG_SENSOR_INIT			54
-#define CFG_GET_3D_CALI_DATA 	55
-#define CFG_GET_CALIB_DATA		56
+// #define CFG_SENSOR_INIT			54
+// #define CFG_GET_3D_CALI_DATA 	55
+// #define CFG_GET_CALIB_DATA		56
 #define CFG_SET_SCENE_MODE      57
 #define CFG_SET_AEC_AWB_LOCK_MODE 58
-#define CFG_MAX                 59
+// #define CFG_MAX                 59
 #else
 #ifdef CONFIG_RAWCHIP
 #define CFG_SET_EXP_GAIN_YUSHAN	54
@@ -96,7 +96,7 @@
 #define SENSOR_FULL_SIZE		1
 #define SENSOR_QVGA_SIZE		2
 #define SENSOR_VIDEO_SIZE		3
-#define SENSOR_INVALID_SIZE		4
+// #define SENSOR_INVALID_SIZE		4
 
 #define CAMERA_EFFECT_OFF		0
 #define CAMERA_EFFECT_MONO		1
@@ -107,7 +107,7 @@
 #define CAMERA_EFFECT_WHITEBOARD	6
 #define CAMERA_EFFECT_BLACKBOARD	7
 #define CAMERA_EFFECT_AQUA		8
-#define CAMERA_EFFECT_MAX		9
+// #define CAMERA_EFFECT_MAX		9
 
 #define CAMERA_3D_MODE 0
 #define CAMERA_2D_MODE 1
@@ -149,16 +149,16 @@ struct wb_info_cfg {
 
 /*Becker for AWB calibration*/
 struct fuse_id{
-	uint32_t fuse_id_word1;
-	uint32_t fuse_id_word2;
-	uint32_t fuse_id_word3;
-	uint32_t fuse_id_word4;
+ 	uint32_t fuse_id_word1;
+ 	uint32_t fuse_id_word2;
+ 	uint32_t fuse_id_word3;
+ 	uint32_t fuse_id_word4;
 };
 
 /*Vincent for LSC calibration*/
 struct reg_addr_val_pair_struct {
-	uint16_t reg_addr;
-	uint8_t reg_val;
+ 	uint16_t reg_addr;
+ 	uint8_t reg_val;
 };
 
 struct lsc_cfg{
@@ -169,188 +169,188 @@ struct lsc_cfg{
 /* For 2nd CAM (mt9v113) */
 enum antibanding_mode{
 	CAMERA_ANTI_BANDING_50HZ,
-	CAMERA_ANTI_BANDING_60HZ,
-	CAMERA_ANTI_BANDING_AUTO,
+ 	CAMERA_ANTI_BANDING_60HZ,
+ 	CAMERA_ANTI_BANDING_AUTO,
 };
-
+ 
 enum brightness_t{
-	CAMERA_BRIGHTNESS_N3,
-	CAMERA_BRIGHTNESS_N2,
-	CAMERA_BRIGHTNESS_N1,
-	CAMERA_BRIGHTNESS_D,
-	CAMERA_BRIGHTNESS_P1,
-	CAMERA_BRIGHTNESS_P2,
-	CAMERA_BRIGHTNESS_P3,
-	CAMERA_BRIGHTNESS_P4,
-	CAMERA_BRIGHTNESS_N4,
+ 	CAMERA_BRIGHTNESS_N3,
+ 	CAMERA_BRIGHTNESS_N2,
+ 	CAMERA_BRIGHTNESS_N1,
+ 	CAMERA_BRIGHTNESS_D,
+ 	CAMERA_BRIGHTNESS_P1,
+ 	CAMERA_BRIGHTNESS_P2,
+ 	CAMERA_BRIGHTNESS_P3,
+ 	CAMERA_BRIGHTNESS_P4,
+ 	CAMERA_BRIGHTNESS_N4,
 };
-
+ 
 enum frontcam_t{
-	CAMERA_MIRROR,
-	CAMERA_REVERSE,
-	CAMERA_PORTRAIT_REVERSE, /* 0916 for 3rd party */
-};
-
+ 	CAMERA_MIRROR,
+ 	CAMERA_REVERSE,
+ 	CAMERA_PORTRAIT_REVERSE, /* 0916 for 3rd party */
+ };
+ 
 enum wb_mode{
-	CAMERA_AWB_AUTO,/*auto*/
-	CAMERA_AWB_CLOUDY,/*Cloudy*/
-	CAMERA_AWB_INDOOR_HOME,/*Fluorescent*/
-	CAMERA_AWB_INDOOR_OFFICE,/*Incandescent*/
-	CAMERA_AWB_SUNNY,/*daylight*/
+ 	CAMERA_AWB_AUTO,/*auto*/
+ 	CAMERA_AWB_CLOUDY,/*Cloudy*/
+ 	CAMERA_AWB_INDOOR_HOME,/*Fluorescent*/
+ 	CAMERA_AWB_INDOOR_OFFICE,/*Incandescent*/
+ 	CAMERA_AWB_SUNNY,/*daylight*/
 };
-
+ 
 enum iso_mode{
-  CAMERA_ISO_AUTO = 0,
-  CAMERA_ISO_DEBLUR,
-  CAMERA_ISO_100,
-  CAMERA_ISO_200,
-  CAMERA_ISO_400,
-  CAMERA_ISO_800,
-  CAMERA_ISO_1250,
-  CAMERA_ISO_1600,
-  CAMERA_ISO_MAX
+   CAMERA_ISO_AUTO = 0,
+   CAMERA_ISO_DEBLUR,
+   CAMERA_ISO_100,
+   CAMERA_ISO_200,
+   CAMERA_ISO_400,
+   CAMERA_ISO_800,
+   CAMERA_ISO_1250,
+   CAMERA_ISO_1600,
+   CAMERA_ISO_MAX
 };
-
+ 
 enum sharpness_mode{
 	CAMERA_SHARPNESS_X0,
-	CAMERA_SHARPNESS_X1,
-	CAMERA_SHARPNESS_X2,
-	CAMERA_SHARPNESS_X3,
-	CAMERA_SHARPNESS_X4,
-	CAMERA_SHARPNESS_X5,
-	CAMERA_SHARPNESS_X6,
+ 	CAMERA_SHARPNESS_X1,
+ 	CAMERA_SHARPNESS_X2,
+ 	CAMERA_SHARPNESS_X3,
+ 	CAMERA_SHARPNESS_X4,
+ 	CAMERA_SHARPNESS_X5,
+ 	CAMERA_SHARPNESS_X6,
 };
-
+ 
 enum saturation_mode{
-	CAMERA_SATURATION_X0,
-	CAMERA_SATURATION_X05,
-	CAMERA_SATURATION_X1,
-	CAMERA_SATURATION_X15,
-	CAMERA_SATURATION_X2,
+ 	CAMERA_SATURATION_X0,
+ 	CAMERA_SATURATION_X05,
+ 	CAMERA_SATURATION_X1,
+ 	CAMERA_SATURATION_X15,
+ 	CAMERA_SATURATION_X2,
 };
-
+ 
 enum contrast_mode{
-	CAMERA_CONTRAST_P2,
-	CAMERA_CONTRAST_P1,
-	CAMERA_CONTRAST_D,
-	CAMERA_CONTRAST_N1,
-	CAMERA_CONTRAST_N2,
+ 	CAMERA_CONTRAST_P2,
+ 	CAMERA_CONTRAST_P1,
+ 	CAMERA_CONTRAST_D,
+ 	CAMERA_CONTRAST_N1,
+ 	CAMERA_CONTRAST_N2,
 };
-
+ 
 enum qtr_size_mode{
 	NORMAL_QTR_SIZE_MODE,
-	LARGER_QTR_SIZE_MODE,
+ 	LARGER_QTR_SIZE_MODE,
 };
-
+ 
 enum sensor_af_mode{
-	SENSOR_AF_MODE_AUTO,
-	SENSOR_AF_MODE_NORMAL,
-	SENSOR_AF_MODE_MACRO,
+ 	SENSOR_AF_MODE_AUTO,
+ 	SENSOR_AF_MODE_NORMAL,
+ 	SENSOR_AF_MODE_MACRO,
 };
 
 struct Sp3d_OTP{
-	unsigned long long  coefA1;
-	unsigned long long  coefB1;
-	unsigned long long  coefC1;
-	unsigned long long  coefA2;
-	unsigned long long  coefB2;
-	unsigned long long  coefC2;
-	unsigned long long  coefA3;
-	unsigned long long  coefB3;
-	unsigned long long  coefC3;
+ 	unsigned long long  coefA1;
+ 	unsigned long long  coefB1;
+ 	unsigned long long  coefC1;
+ 	unsigned long long  coefA2;
+ 	unsigned long long  coefB2;
+ 	unsigned long long  coefC2;
+ 	unsigned long long  coefA3;
+ 	unsigned long long  coefB3;
+ 	unsigned long long  coefC3;
 };
 
 struct otp_cfg{
-	struct Sp3d_OTP master_otp;
-	struct Sp3d_OTP slave_otp;
-	uint8_t sp3d_id[11];
-	uint16_t sp3d_otp_version;
+ 	struct Sp3d_OTP master_otp;
+ 	struct Sp3d_OTP slave_otp;
+ 	uint8_t sp3d_id[11];
+ 	uint16_t sp3d_otp_version;
 };
 
 struct flash_cfg{
-	uint8_t flash_enable;
-	uint16_t exp_pre;
-	uint16_t exp_off;
-	uint16_t luma_pre;
-	uint16_t luma_off;
+ 	uint8_t flash_enable;
+ 	uint16_t exp_pre;
+ 	uint16_t exp_off;
+ 	uint16_t luma_pre;
+ 	uint16_t luma_off;
 };
 
 struct exp_cfg{
-	uint16_t AGC_Gain1;
-	uint16_t AGC_Gain2;
-	uint16_t ExposureTimeNum0;
-	uint16_t ExposureTimeNum1;
-	uint16_t ExposureTimeNum2;
-	uint16_t ExposureTimeNum3;
-	uint16_t ExposureTimeDen0;
-	uint16_t ExposureTimeDen1;
-	uint16_t ExposureTimeDen2;
-	uint16_t ExposureTimeDen3;
-	uint16_t AF_area;
-	uint16_t flicker_compansation;
+ 	uint16_t AGC_Gain1;
+ 	uint16_t AGC_Gain2;
+ 	uint16_t ExposureTimeNum0;
+ 	uint16_t ExposureTimeNum1;
+ 	uint16_t ExposureTimeNum2;
+ 	uint16_t ExposureTimeNum3;
+ 	uint16_t ExposureTimeDen0;
+ 	uint16_t ExposureTimeDen1;
+ 	uint16_t ExposureTimeDen2;
+ 	uint16_t ExposureTimeDen3;
+ 	uint16_t AF_area;
+ 	uint16_t flicker_compansation;
 };
 
 #ifdef CONFIG_CAMERA_3D
 struct sensor_3d_exp_cfg {
-	uint16_t gain;
-	uint32_t line;
-	uint16_t r_gain;
-	uint16_t b_gain;
-	uint16_t gr_gain;
-	uint16_t gb_gain;
-	uint16_t gain_adjust;
+ 	uint16_t gain;
+ 	uint32_t line;
+ 	uint16_t r_gain;
+ 	uint16_t b_gain;
+ 	uint16_t gr_gain;
+ 	uint16_t gb_gain;
+ 	uint16_t gain_adjust;
 };
 
 struct sensor_3d_cali_data_t{
-	unsigned char left_p_matrix[3][4][8];
-	unsigned char right_p_matrix[3][4][8];
-	unsigned char square_len[8];
-	unsigned char focal_len[8];
-	unsigned char pixel_pitch[8];
-	uint16_t left_r;
-	uint16_t left_b;
-	uint16_t left_gb;
-	uint16_t left_af_far;
-	uint16_t left_af_mid;
-	uint16_t left_af_short;
-	uint16_t left_af_5um;
-	uint16_t left_af_50up;
-	uint16_t left_af_50down;
-	uint16_t right_r;
-	uint16_t right_b;
-	uint16_t right_gb;
-	uint16_t right_af_far;
-	uint16_t right_af_mid;
-	uint16_t right_af_short;
-	uint16_t right_af_5um;
-	uint16_t right_af_50up;
-	uint16_t right_af_50down;
+ 	unsigned char left_p_matrix[3][4][8];
+ 	unsigned char right_p_matrix[3][4][8];
+ 	unsigned char square_len[8];
+ 	unsigned char focal_len[8];
+ 	unsigned char pixel_pitch[8];
+ 	uint16_t left_r;
+ 	uint16_t left_b;
+ 	uint16_t left_gb;
+ 	uint16_t left_af_far;
+ 	uint16_t left_af_mid;
+ 	uint16_t left_af_short;
+ 	uint16_t left_af_5um;
+ 	uint16_t left_af_50up;
+ 	uint16_t left_af_50down;
+ 	uint16_t right_r;
+ 	uint16_t right_b;
+ 	uint16_t right_gb;
+ 	uint16_t right_af_far;
+ 	uint16_t right_af_mid;
+ 	uint16_t right_af_short;
+ 	uint16_t right_af_5um;
+ 	uint16_t right_af_50up;
+ 	uint16_t right_af_50down;
 };
 
 struct sensor_init_cfg {
-	uint8_t prev_res;
-	uint8_t pict_res;
+ 	uint8_t prev_res;
+ 	uint8_t pict_res;
 };
-
+ 
 struct sensor_calib_data {
-	/* Color Related Measurements */
-	uint16_t r_over_g;
-	uint16_t b_over_g;
-	uint16_t gr_over_gb;
-
-	/* Lens Related Measurements */
-	uint16_t macro_2_inf;
-	uint16_t inf_2_macro;
-	uint16_t stroke_amt;
-	uint16_t af_pos_1m;
-	uint16_t af_pos_inf;
+ 	/* Color Related Measurements */
+ 	uint16_t r_over_g;
+ 	uint16_t b_over_g;
+ 	uint16_t gr_over_gb;
+ 
+ 	/* Lens Related Measurements */
+ 	uint16_t macro_2_inf;
+ 	uint16_t inf_2_macro;
+ 	uint16_t stroke_amt;
+ 	uint16_t af_pos_1m;
+ 	uint16_t af_pos_inf;
 };
 
 struct sensor_large_data {
 	int cfgtype;
-	union {
-		struct sensor_3d_cali_data_t sensor_3d_cali_data;
-	} data;
+ 	union {
+ 		struct sensor_3d_cali_data_t sensor_3d_cali_data;
+ 	} data;
 };
 #endif
 
@@ -441,9 +441,6 @@ struct sensor_cfg_data {
 #endif
 	} cfg;
 };
-
-
-
 
 #define GET_NAME			0
 #define GET_PREVIEW_LINE_PER_FRAME	1

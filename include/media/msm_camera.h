@@ -1097,6 +1097,23 @@ struct sensor_calib_data {
 	uint16_t af_pos_inf;
 };
 
+enum msm_sensor_resolution_t {
+	MSM_SENSOR_RES_FULL,
+	MSM_SENSOR_RES_QTR,
+	MSM_SENSOR_RES_VIDEO,
+	MSM_SENSOR_RES_VIDEO_HFR,
+	MSM_SENSOR_RES_16_9,
+	MSM_SENSOR_RES_4_3,
+	MSM_SENSOR_RES_2,
+	MSM_SENSOR_RES_3,
+	MSM_SENSOR_RES_4,
+	MSM_SENSOR_RES_5,
+	MSM_SENSOR_RES_6,
+	MSM_SENSOR_RES_7,
+	MSM_SENSOR_INVALID_RES,
+};
+
+
 struct msm_sensor_output_info_t {
 	uint16_t x_output;
 	uint16_t y_output;
@@ -1143,7 +1160,6 @@ struct cord {
 	uint32_t y;
 };
 
-#if 1 
 enum antibanding_mode{
 	CAMERA_ANTI_BANDING_50HZ,
 	CAMERA_ANTI_BANDING_60HZ,
@@ -1224,7 +1240,6 @@ enum sensor_af_mode{
 	SENSOR_AF_MODE_NORMAL,
 	SENSOR_AF_MODE_MACRO,
 };
-#endif 
 
 struct fuse_id{
 	uint32_t fuse_id_word1;
@@ -1239,6 +1254,132 @@ typedef struct{
     uint16_t max;
 }vcm_pos;
 
+// 		struct sensor_init_cfg init_info;
+// 		struct sensor_pict_fps gfps;
+// 		struct exp_gain_cfg exp_gain;
+// 		struct focus_cfg focus;
+// 		struct fps_cfg fps;
+// 		struct wb_info_cfg wb_info;
+// 		struct sensor_3d_exp_cfg sensor_3d_exp;
+// 		struct sensor_calib_data calib_info;
+// 		struct sensor_output_info_t output_info;
+// 		struct sensor_eeprom_data_t eeprom_data;
+// 		
+// 		uint16_t antibanding;
+// 		uint8_t contrast;
+// 		uint8_t saturation;
+// 		uint8_t sharpness;
+// 		int8_t brightness;
+// 		int ae_mode;
+// 		uint8_t wb_val;
+// 		int8_t exp_compensation;
+// 		struct cord aec_cord;
+// 		int is_autoflash;
+// 		struct mirror_flip mirror_flip;
+// 
+// 		
+// 		
+// 		struct fuse_id fuse;
+// 		
+// 		vcm_pos calib_vcm_pos; 
+// #if 1 
+// 		enum antibanding_mode antibanding_value;
+// 		enum brightness_t brightness_value;
+// 		enum frontcam_t frontcam_value;
+// 		enum wb_mode wb_value;
+// 		enum iso_mode iso_value;
+// 		enum sharpness_mode sharpness_value;
+// 		enum saturation_mode saturation_value;
+// 		enum contrast_mode contrast_value;
+// 		enum qtr_size_mode qtr_size_mode_value;
+// 		enum sensor_af_mode af_mode_value;
+// #endif 
+// 
+// 	} cfg;
+// };
+
+#ifdef CONFIG_CAMERA_3D
+enum bestshot_mode {
+  BESTSHOT_OFF = 0,
+  BESTSHOT_LANDSCAPE = 1,
+  BESTSHOT_SNOW,
+  BESTSHOT_BEACH,
+  BESTSHOT_SUNSET,
+  BESTSHOT_NIGHT, /*5*/
+  BESTSHOT_PORTRAIT,
+  BESTSHOT_BACKLIGHT,
+  BESTSHOT_SPORTS,
+  BESTSHOT_ANTISHAKE,
+  BESTSHOT_FLOWERS, /*10*/
+  BESTSHOT_CANDLELIGHT,
+  BESTSHOT_FIREWORKS,
+  BESTSHOT_PARTY,
+  BESTSHOT_NIGHT_PORTRAIT,
+  BESTSHOT_THEATRE, /*15*/
+  BESTSHOT_ACTION,
+  BESTSHOT_AR,
+  BESTSHOT_MAX
+};
+
+enum aec_awb_lock_mode{
+	UNLOCK_AEC_UNLOCK_AWB_MODE,   /*default*/
+	UNLOCK_AEC_LOCK_AWB_MODE,
+	LOCK_AEC_UNLOCK_AWB_MODE,
+	LOCK_AEC_LOCK_AWB_MODE,
+};
+#endif
+
+struct flash_cfg{
+	uint8_t flash_enable;
+	uint16_t exp_pre;
+	uint16_t exp_off;
+	uint16_t luma_pre;
+	uint16_t luma_off;
+};
+
+struct exp_cfg{
+	uint16_t AGC_Gain1;
+	uint16_t AGC_Gain2;
+	uint16_t ExposureTimeNum0;
+	uint16_t ExposureTimeNum1;
+	uint16_t ExposureTimeNum2;
+	uint16_t ExposureTimeNum3;
+	uint16_t ExposureTimeDen0;
+	uint16_t ExposureTimeDen1;
+	uint16_t ExposureTimeDen2;
+	uint16_t ExposureTimeDen3;
+	uint16_t AF_area;
+	uint16_t flicker_compansation;
+};
+
+struct reg_addr_val_pair_struct {
+	uint16_t reg_addr;
+	uint8_t reg_val;
+};
+
+struct lsc_cfg{
+	struct reg_addr_val_pair_struct lsc_table[144]; /*OV LSC table*/
+};
+
+struct Sp3d_OTP{
+	unsigned long long  coefA1;
+	unsigned long long  coefB1;
+	unsigned long long  coefC1;
+	unsigned long long  coefA2;
+	unsigned long long  coefB2;
+	unsigned long long  coefC2;
+	unsigned long long  coefA3;
+	unsigned long long  coefB3;
+	unsigned long long  coefC3;
+};
+
+struct otp_cfg{
+	struct Sp3d_OTP master_otp;
+	struct Sp3d_OTP slave_otp;
+	uint8_t sp3d_id[11];
+	uint16_t sp3d_otp_version;
+};
+
 struct sensor_cfg_data {
 	int cfgtype;
 	int mode;
@@ -1246,6 +1387,7 @@ struct sensor_cfg_data {
 	uint8_t max_steps;
 
 	union {
+		int8_t af_area;
 		int8_t effect;
 		uint8_t lens_shading;
 		uint16_t prevl_pf;
@@ -1255,35 +1397,30 @@ struct sensor_cfg_data {
 		uint32_t pict_max_exp_lc;
 		uint16_t p_fps;
 		uint8_t iso_type;
+#ifdef CONFIG_CAMERA_3D
 		struct sensor_init_cfg init_info;
+#endif
+		uint16_t flash_exp_div;
+		uint16_t real_iso_value;
+		uint16_t down_framerate;
 		struct sensor_pict_fps gfps;
 		struct exp_gain_cfg exp_gain;
 		struct focus_cfg focus;
 		struct fps_cfg fps;
 		struct wb_info_cfg wb_info;
+
+#ifdef CONFIG_CAMERA_3D
 		struct sensor_3d_exp_cfg sensor_3d_exp;
 		struct sensor_calib_data calib_info;
-		struct sensor_output_info_t output_info;
-		struct sensor_eeprom_data_t eeprom_data;
-		
-		uint16_t antibanding;
-		uint8_t contrast;
-		uint8_t saturation;
-		uint8_t sharpness;
-		int8_t brightness;
-		int ae_mode;
-		uint8_t wb_val;
-		int8_t exp_compensation;
-		struct cord aec_cord;
-		int is_autoflash;
-		struct mirror_flip mirror_flip;
+#endif
 
-		
-		
 		struct fuse_id fuse;
-		
-		vcm_pos calib_vcm_pos; 
-#if 1 
+		struct lsc_cfg lsctable;/*Vincent for LSC calibration*/
+		struct otp_cfg sp3d_otp_cfg;
+		struct flash_cfg flash_data;
+		struct exp_cfg exp_info;
+ 		struct sensor_output_info_t output_info;
+		/* For 2nd CAM */
 		enum antibanding_mode antibanding_value;
 		enum brightness_t brightness_value;
 		enum frontcam_t frontcam_value;
@@ -1291,11 +1428,14 @@ struct sensor_cfg_data {
 		enum iso_mode iso_value;
 		enum sharpness_mode sharpness_value;
 		enum saturation_mode saturation_value;
-		enum contrast_mode contrast_value;
+		enum contrast_mode  contrast_value;
 		enum qtr_size_mode qtr_size_mode_value;
 		enum sensor_af_mode af_mode_value;
-#endif 
 
+#ifdef CONFIG_CAMERA_3D
+		enum aec_awb_lock_mode aec_awb_lock_mode_value;
+		enum bestshot_mode bestshot_mode_value;
+#endif
 	} cfg;
 };
 

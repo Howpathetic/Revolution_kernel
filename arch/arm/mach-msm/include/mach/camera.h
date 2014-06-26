@@ -19,6 +19,7 @@
 #include <linux/cdev.h>
 #include <linux/platform_device.h>
 #include <linux/wakelock.h>
+#include <linux/regulator/consumer.h>
 #include "linux/types.h"
 
 #include <mach/board.h>
@@ -85,7 +86,12 @@ enum vfe_resp_msg {
 	VFE_MSG_V32_START,
 	VFE_MSG_V32_START_RECORDING,
 	VFE_MSG_V32_CAPTURE,
+	VFE_MSG_V32_JPEG_CAPTURE,
 	VFE_MSG_OUTPUT_IRQ,
+	VFE_MSG_V2X_PREVIEW,
+	VFE_MSG_V2X_CAPTURE,
+	VFE_MSG_OUTPUT_PRIMARY,
+	VFE_MSG_OUTPUT_SECONDARY,
 };
 
 enum vpe_resp_msg {
@@ -180,6 +186,7 @@ struct msm_camera_csid_params {
 struct msm_camera_csiphy_params {
 	uint8_t lane_cnt;
 	uint8_t settle_cnt;
+	uint8_t lane_mask;
 };
 
 struct msm_camera_csi2_params {
@@ -197,6 +204,7 @@ struct msm_camera_csi2_params {
 #define CSI_RAW8    0x2A
 #define CSI_RAW10   0x2B
 #define CSI_RAW12   0x2C
+#define CSI_YUV422_8  0x1E
 
 #define CSI_DECODE_6BIT 0
 #define CSI_DECODE_8BIT 1
@@ -322,9 +330,11 @@ struct msm_sensor_ctrl {
 
 struct msm_actuator_ctrl {
 	int (*a_init_table)(void);
-	int (*a_power_down)(void);
+	int (*a_power_up)(void *);
+	int (*a_power_down)(void *);
 	int (*a_create_subdevice)(void *, void *);
 	int (*a_config)(void __user *);
+	int is_ois_supported;
 };
 
 struct msm_strobe_flash_ctrl {
@@ -342,6 +352,7 @@ struct msm_queue_cmd {
 	struct list_head list_frame;
 	struct list_head list_pict;
 	struct list_head list_vpe_frame;
+	struct list_head list_eventdata;
 	enum msm_queue type;
 	void *command;
 	atomic_t on_heap;
@@ -356,6 +367,11 @@ struct msm_device_queue {
 	int max;
 	int len;
 	const char *name;
+};
+
+struct msm_mctl_stats_t {
+	struct hlist_head pmem_stats_list;
+	spinlock_t pmem_stats_spinlock;
 };
 
 struct msm_sync {
@@ -472,6 +488,7 @@ struct msm_pmem_region {
 	unsigned long len;
 	struct file *file;
 	struct msm_pmem_info info;
+	struct ion_handle *handle;
 	struct msm_mapped_buffer *msm_buffer;
 	int subsys_id;
 };
@@ -609,11 +626,16 @@ enum msm_bus_perf_setting {
 	S_EXIT
 };
 
-enum msm_cam_mode {
+struct msm_cam_clk_info {
+	const char *clk_name;
+	long clk_rate;
+};
+
+/*enum msm_cam_mode {
 	MODE_R,
 	MODE_L,
 	MODE_DUAL
-};
+};*/
 
 int msm_camio_enable(struct platform_device *dev);
 int msm_camio_jpeg_clk_enable(void);
@@ -621,7 +643,7 @@ int msm_camio_jpeg_clk_disable(void);
 int msm_camio_vpe_clk_enable(uint32_t);
 int msm_camio_vpe_clk_disable(void);
 
-void msm_camio_mode_config(enum msm_cam_mode mode);
+void msm_camio_mode_config(enum msm_camera_i2c_mux_mode mode);
 int  msm_camio_clk_enable(enum msm_camio_clk_type clk);
 int  msm_camio_clk_disable(enum msm_camio_clk_type clk);
 int  msm_camio_clk_config(uint32_t freq);
@@ -640,9 +662,8 @@ void msm_camio_vfe_blk_reset(void);
 int32_t msm_camio_3d_enable(const struct msm_camera_sensor_info *sinfo);
 void msm_camio_3d_disable(void);
 void msm_camio_clk_sel(enum msm_camio_clk_src_type);
-void msm_camio_disable(struct platform_device *);
-int msm_camio_probe_on(struct platform_device *);
-int msm_camio_probe_off(struct platform_device *);
+int msm_camio_probe_on(void *s_info);
+int msm_camio_probe_off(void *s_info);
 int msm_camio_sensor_clk_off(struct platform_device *);
 int msm_camio_sensor_clk_on(struct platform_device *);
 int msm_camio_csi_config(struct msm_camera_csi_params *csi_params);
@@ -663,4 +684,6 @@ void msm_camio_set_perf_lvl(enum msm_bus_perf_setting);
 void *msm_isp_sync_alloc(int size, gfp_t gfp);
 
 void msm_isp_sync_free(void *ptr);
+int msm_cam_clk_enable(struct device *dev, struct msm_cam_clk_info *clk_info,
+		struct clk **clk_ptr, int num_clk, int enable);
 #endif

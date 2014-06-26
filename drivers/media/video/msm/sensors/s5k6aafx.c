@@ -27,7 +27,7 @@
 #elif defined(CONFIG_MSM_CAMERA_7X30)
 #include <mach/camera-7x30.h>
 #else
-#include <mach/camera.h>
+#include <mach/camera-8x60.h>
 #endif
 
 #include <media/msm_camera_sensor.h>
