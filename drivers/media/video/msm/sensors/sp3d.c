@@ -39,8 +39,8 @@
 #define SP3D_REGADDR_WR 0x70
 #define SP3D_REGVAL_WR	0x72
 #define SP3D_REGVAL_RD	0x73
-#define	Q8						0x100
-#define	Q10						0x400
+//#define	Q8						0x100
+//#define	Q10						0x400
 
 static struct platform_device *sp3d_pdev;
 static int dmode = CAMERA_3D_MODE;

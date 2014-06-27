@@ -200,6 +200,17 @@
  * 1. control command: control command(from control thread),
  *                     control status (from config thread);
  */
+
+struct sensor_output_info_t {
+	struct msm_sensor_output_info_t *output_info;
+	uint16_t num_info;
+ 
+	uint16_t vert_offset;
+	uint16_t min_vert;
+	int mirror_flip;
+	uint32_t sensor_max_linecount; 
+};
+
 struct msm_ctrl_cmd {
 	uint16_t type;
 	uint16_t length;
@@ -207,6 +218,22 @@ struct msm_ctrl_cmd {
 	uint16_t status;
 	uint32_t timeout_ms;
 	int resp_fd; /* FIXME: to be used by the kernel, pass-through for now */
+};
+
+enum msm_sensor_resolution_t {
+	MSM_SENSOR_RES_FULL,
+	MSM_SENSOR_RES_QTR,
+	MSM_SENSOR_RES_VIDEO,
+	MSM_SENSOR_RES_VIDEO_HFR,
+	MSM_SENSOR_RES_16_9,
+	MSM_SENSOR_RES_4_3,
+	MSM_SENSOR_RES_2,
+	MSM_SENSOR_RES_3,
+	MSM_SENSOR_RES_4,
+	MSM_SENSOR_RES_5,
+	MSM_SENSOR_RES_6,
+	MSM_SENSOR_RES_7,
+	MSM_SENSOR_INVALID_RES,
 };
 
 #ifndef CONFIG_CAMERA_3D
