@@ -106,9 +106,11 @@ xt_socket_get4_sk(const struct sk_buff *skb, struct xt_action_param *par)
 	const struct iphdr *iph = ip_hdr(skb);
 	struct udphdr _hdr, *hp = NULL;
 	struct sock *sk;
-	__be32 daddr, saddr;
-	__be16 dport, sport;
-	u8 protocol;
+	__be32 daddr = 0;
+	__be32 saddr = 0;
+	__be16 dport = 0;
+	__be16 sport = 0;
+	u8 protocol = 0;
 #ifdef XT_SOCKET_HAVE_CONNTRACK
 	struct nf_conn const *ct;
 	enum ip_conntrack_info ctinfo;
@@ -268,6 +270,11 @@ xt_socket_get6_sk(const struct sk_buff *skb, struct xt_action_param *par)
 	struct in6_addr *daddr, *saddr;
 	__be16 dport, sport;
 	int thoff, tproto;
+
+	sport = 0;
+	dport = 0;
+	saddr = NULL;
+	daddr = NULL;
 
 	tproto = ipv6_find_hdr(skb, &thoff, -1, NULL);
 	if (tproto < 0) {
