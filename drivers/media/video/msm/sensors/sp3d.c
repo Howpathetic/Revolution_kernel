@@ -30,17 +30,25 @@
 #include <asm/uaccess.h>
 #include "sp3d.h"
 #include <linux/htc_flashlight.h>
-#include "msm_sensor.h"
 
 #define SENSOR_NAME "sp3d"
 #define PLATFORM_DRIVER_NAME "msm_camera_sp3d"
 
 #define SP3D_DEBUG_MODE 0
+/* SP3D module operation mode */
 #define SP3D_REGADDR_WR 0x70
 #define SP3D_REGVAL_WR	0x72
 #define SP3D_REGVAL_RD	0x73
-//#define	Q8						0x100
-//#define	Q10						0x400
+#define	Q8						0x100
+#define	Q10						0x400
+
+/* SENSOR REGISTER DEFINES */
+
+/* Full	Size */
+/* Quarter Size	*/
+/* Blanking as measured	on the scope */
+/* Full	Size */
+/* Quarter Size	*/
 
 static struct platform_device *sp3d_pdev;
 static int dmode = CAMERA_3D_MODE;

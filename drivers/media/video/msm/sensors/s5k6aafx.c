@@ -27,7 +27,7 @@
 #elif defined(CONFIG_MSM_CAMERA_7X30)
 #include <mach/camera-7x30.h>
 #else
-#include <mach/camera-8x60.h>
+#include <mach/camera.h>
 #endif
 
 #include <media/msm_camera_sensor.h>
@@ -35,8 +35,6 @@
 #include <mach/vreg.h>
 #include "s5k6aafx.h"
 #include <linux/slab.h>
-
-#include "msm_sensor.h"
 
 struct s5k6aafx_work {
 	struct work_struct work;

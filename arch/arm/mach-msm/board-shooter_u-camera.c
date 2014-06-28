@@ -31,13 +31,12 @@
 #include <linux/leds.h>
 #endif
 
-static unsigned int engineerid;
-static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power);
-static int camera_sensor_power_disable(struct regulator *sensor_power);
-static struct platform_device msm_camera_server = {
-	.name = "msm_cam_server",
-	.id = 0,
-};
+// static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power);
+// static int camera_sensor_power_disable(struct regulator *sensor_power);
+// static struct platform_device msm_camera_server = {
+	// .name = "msm_cam_server",
+	// .id = 0,
+// };
 
 #ifdef CONFIG_MSM_CAMERA
 static struct msm_bus_vectors cam_init_vectors[] = {
@@ -463,7 +462,7 @@ static void config_gpio_table(uint32_t *table, int len)
 static int shooter_u_config_camera_on_gpios(void)
 {
 
-	if (system_rev == 0x80 && engineerid == 0x1) {
+	if (system_rev == 0x80) {
 		config_gpio_table(camera_on_gpio_table_liteon,
 			ARRAY_SIZE(camera_on_gpio_table_liteon));
 	} else {
@@ -476,7 +475,7 @@ static int shooter_u_config_camera_on_gpios(void)
 
 static void shooter_u_config_camera_off_gpios(void)
 {
-	if (system_rev == 0x80 && engineerid == 0x1) {
+	if (system_rev == 0x80) {
 		config_gpio_table(camera_off_gpio_table_liteon,
 			ARRAY_SIZE(camera_off_gpio_table_liteon));
 	} else {
@@ -611,7 +610,7 @@ static int shooter_u_qs_s5k4e1_vreg_off(void)
 		}
 	}
 
-	if (!(system_rev == 0x80 && engineerid == 0x1)) {
+	if (!(system_rev == 0x80) {
 		rc = camera_sensor_power_disable(shooter_u_reg_8058_l15);
 		pr_info("[CAM] camera_sensor_power_disable(\"8058_l15\", 2.8V) == %d\n", rc);
 		if (rc < 0) {
@@ -776,7 +775,7 @@ static int shooter_u_sp3d_vreg_off(void)
 	}
 	udelay(10);
 	
-	if (!(system_rev == 0x80 && engineerid == 0x1)) {
+	if (!(system_rev == 0x80) {
 		rc = camera_sensor_power_disable(shooter_u_reg_8058_l15);
 		pr_info("[CAM] camera_sensor_power_disable(\"8058_l15\", 2.8V) == %d\n", rc);
 		if (rc < 0) {

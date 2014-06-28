@@ -27,31 +27,39 @@
 #define SENSOR_NAME "qs_s5k4e1"
 #define PLATFORM_DRIVER_NAME "msm_camera_qs_s5k4e1"
 
+/*=============================================================
+	SENSOR REGISTER DEFINES
+==============================================================*/
 #define REG_GROUPED_PARAMETER_HOLD		0x0104
 #define GROUPED_PARAMETER_HOLD_OFF		0x00
 #define GROUPED_PARAMETER_HOLD			0x01
-
+/* Integration Time */
 #define REG_COARSE_INTEGRATION_TIME		0x0202
-
+/* Gain */
 #define REG_GLOBAL_GAIN					0x0204
 #define REG_GR_GAIN					0x020E
 #define REG_R_GAIN					0x0210
 #define REG_B_GAIN					0x0212
 #define REG_GB_GAIN					0x0214
-
+/* PLL registers */
 #define REG_FRAME_LENGTH_LINES			0x0340
 #define REG_LINE_LENGTH_PCK				0x0342
-
+/* Test Pattern */
 #define REG_TEST_PATTERN_MODE			0x0601
 #define REG_VCM_NEW_CODE				0x30F2
 #define AF_ADDR							0x18
 #define BRIDGE_ADDR						0x80
+/*============================================================================
+			 TYPE DECLARATIONS
+============================================================================*/
 
+/* 16bit address - 8 bit context register structure */
 #define Q8  0x00000100
 #define Q10 0x00000400
 #define QS_S5K4E1_MASTER_CLK_RATE 24000000
 #define QS_S5K4E1_OFFSET			8
 
+/* AF Total steps parameters */
 #define QS_S5K4E1_TOTAL_STEPS_NEAR_TO_FAR    32
 #define QS_S5K4E1_TOTAL_STEPS_3D    32
 
