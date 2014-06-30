@@ -204,7 +204,7 @@ bool Tri_state_dongle_GPIO0(void)
 {
 	bool result = true;
 
-	I2C_WriteByte(CBUS_SLAVE_ADDR,0x13, 0x33);       
+	I2C_WriteByte(CBUS_SLAVE_ADDR,0x13, 0x33);       // enable backdoor access
 	I2C_WriteByte(CBUS_SLAVE_ADDR,0x14, 0x80);
 	I2C_WriteByte(CBUS_SLAVE_ADDR,0x12, 0x08);
 
@@ -243,8 +243,10 @@ void Low_dongle_GPIO0(void)
 
 void SiiMhlTxMscDetectCharger(uint8_t data1)
 {
-	
 	if ((data1 & 0x13) == 0x11) {
+		/* Turn off phone Vbus output ; */
+		/* Set battery charge current=500mA; */
+		/* Enable battery charger; */
 		mscCmdInProgress = false;
 		mhlTxConfig.mscState = MSC_STATE_POW_DONE;
 		Chk_Dongle_Step = 0;
@@ -265,7 +267,6 @@ void SiiMhlTxMscDetectCharger(uint8_t data1)
 		}
 	}
 
-	
 	if ((data1 & 0x03) == 0x03) {
 
 		if (Chk_Dongle_Step == 0) {
@@ -276,7 +277,7 @@ void SiiMhlTxMscDetectCharger(uint8_t data1)
 				return;
 			}
 
-			
+			/* GPIO0_state=3; */
 
 			mscCmdInProgress = false;
 			SiiMhlTxReadDevcap(0x02);
@@ -290,10 +291,10 @@ void SiiMhlTxMscDetectCharger(uint8_t data1)
 			mscCmdInProgress = false;
 
 			if (data1 & 0x10) {
-				
+				/* Turn off phone Vbus output ; */
 				Low_dongle_GPIO0();
 
-				
+				/* GPIO0_state = 0;  */
 #if 0
 				SiiMhlTxReadDevcap(0x02);
 #endif
@@ -306,7 +307,7 @@ void SiiMhlTxMscDetectCharger(uint8_t data1)
 
 				mhlTxConfig.mscState = MSC_STATE_POW_DONE;
 
-				
+				/* turn on phone VBUS output.; */
 				TPI_DEBUG_PRINT(("No charger!!\n"));
 
 				if (gStatusMHL != CONNECT_TYPE_INTERNAL) {
@@ -324,9 +325,9 @@ void SiiMhlTxMscDetectCharger(uint8_t data1)
 			Chk_Dongle_Step = 0;
 
 			if (data1 & 0x10) {
-				
+				/* Set charge battery current=AC charger rating-100mA ; */
 
-				
+				/* Enable battery charger; &*/
 				TPI_DEBUG_PRINT(("1000mA charger!!\n"));
 				if (gStatusMHL != CONNECT_TYPE_MHL_AC) {
 					gStatusMHL = CONNECT_TYPE_MHL_AC;
@@ -334,7 +335,7 @@ void SiiMhlTxMscDetectCharger(uint8_t data1)
 				}
 
 			} else {
-				
+				/* turn off phone VBUS output; */
 				TPI_DEBUG_PRINT(("500mA charger!!\n"));
 				if (gStatusMHL != CONNECT_TYPE_USB) {
 					gStatusMHL = CONNECT_TYPE_USB;

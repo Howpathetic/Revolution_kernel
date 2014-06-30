@@ -12,6 +12,9 @@
  * GNU General Public License for more details.
  *
  */
+/*********************************************************************
+*  Inculde
+**********************************************************************/
 #include <linux/earlysuspend.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
@@ -39,6 +42,9 @@
 #include "TPI.h"
 #include "mhl_defs.h"
 
+/*********************************************************************
+  Define & Macro
+***********************************************************************/
 #define SII9234_I2C_RETRY_COUNT 2
 
 #define sii_gpio_set_value(pin, val)	\
@@ -52,11 +58,15 @@
 	gpio_cansleep(pin)?	\
 		gpio_get_value_cansleep(pin):	\
 		gpio_get_value(pin)
+
+/*********************************************************************
+  Type Definitions
+***********************************************************************/
 typedef struct {
 	struct i2c_client *i2c_client;
 	struct workqueue_struct *wq;
 	struct wake_lock wake_lock;
-	int (*pwrCtrl)(int); 
+	int (*pwrCtrl)(int); /* power to the chip */
 	void (*mhl_usb_switch)(int);
 	void (*mhl_1v2_power)(bool enable);
 	int  (*mhl_power_vote)(bool enable);
@@ -81,8 +91,13 @@ typedef struct {
 	struct work_struct mhl_notifier_work;
 	mhl_board_params board_params;
 } T_MHL_SII9234_INFO;
-
+/*********************************************************************
+   Variable & Extern variable
+**********************************************************************/
 static T_MHL_SII9234_INFO *sii9234_info_ptr;
+/*********************************************************************
+  Prototype & Extern function
+**********************************************************************/
 static void sii9234_irq_do_work(struct work_struct *work);
 static DECLARE_WORK(sii9234_irq_work, sii9234_irq_do_work);
 
@@ -112,8 +127,11 @@ void hdmi_set_switch_state(bool enable);
 #ifdef MHL_RCP_KEYEVENT
 struct input_dev *input_dev;
 #endif
-static struct platform_device *mhl_dev; 
+static struct platform_device *mhl_dev; /* Device structure */
 
+/*********************************************************************
+	Functions
+**********************************************************************/
 #ifdef CONFIG_CABLE_DETECT_ACCESSORY
 static DEFINE_MUTEX(mhl_notify_sem);
 
@@ -393,19 +411,20 @@ void sii9234_send_keyevent(uint32_t key, uint32_t type)
 }
 
 #ifdef MHL_RCP_KEYEVENT
+/* Sysfs method to input simulated coordinates */
 static ssize_t write_keyevent(struct device *dev,
 				struct device_attribute *attr,
 				const char *buffer, size_t count)
 {
 	int key;
 
-	
+	/* parsing input data */
 	sscanf(buffer, "%d", &key);
 
 
 	PR_DISP_DEBUG("key_event: %d\n", key);
 
-	
+	/* Report key event */
 	switch (key) {
 	case 0:
 		input_report_key(input_dev, KEY_HOME, 1);
@@ -444,6 +463,7 @@ static ssize_t write_keyevent(struct device *dev,
 	return count;
 }
 
+/* Attach the sysfs write method */
 static DEVICE_ATTR(rcp_event, 0644, NULL, write_keyevent);
 #endif
 
@@ -466,7 +486,7 @@ void sii9234_mhl_device_wakeup(void)
 		return;
 	}
 
-	
+	/* MHL_USB_SW for Verdi  0: switch to MHL;  others projects, 1 : switch to MHL */
 	if (pInfo->mhl_usb_switch)
 		pInfo->mhl_usb_switch(1);
 
@@ -574,11 +594,11 @@ static void sii9234_early_suspend(struct early_suspend *h)
 	PR_DISP_DEBUG("%s(isMHL=%d)\n", __func__, pInfo->isMHL);
 
 	mutex_lock(&mhl_early_suspend_sem);
-	
+	/* Enter the early suspend state...*/
 	g_bEnterEarlySuspend = true;
 	suspend_jiffies = jiffies;
 
-	
+	/* Cancel the previous TMDS on delay work...*/
 	cancel_delayed_work(&pInfo->mhl_on_delay_work);
 	if (pInfo->isMHL) {
 		
@@ -777,13 +797,13 @@ static int sii9234_probe(struct i2c_client *client,
 #ifdef CONFIG_CABLE_DETECT_ACCESSORY
 	INIT_WORK(&pInfo->mhl_notifier_work, send_mhl_connect_notify);
 #endif
-	
+	/* Register a platform device */
 	mhl_dev = platform_device_register_simple("mhl", -1, NULL, 0);
 	if (IS_ERR(mhl_dev)) {
 		PR_DISP_DEBUG("mhl init: error\n");
 		return PTR_ERR(mhl_dev);
 	}
-	
+	/* Create a sysfs node to read simulated coordinates */
 
 #ifdef MHL_RCP_KEYEVENT
 	ret = device_create_file(&mhl_dev->dev, &dev_attr_rcp_event);
@@ -794,9 +814,9 @@ static int sii9234_probe(struct i2c_client *client,
 		ret = -ENOMEM;
 		goto err_init;
 	}
-	
+	/* indicate that we generate key events */
 	set_bit(EV_KEY, input_dev->evbit);
-	
+	/* indicate that we generate *any* key event */
 	set_bit(KEY_BACK, input_dev->keybit);
 	set_bit(KEY_HOME, input_dev->keybit);
 	set_bit(KEY_ENTER, input_dev->keybit);

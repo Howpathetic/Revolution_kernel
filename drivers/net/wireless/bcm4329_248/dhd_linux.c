@@ -56,13 +56,77 @@
 #include <dhd.h>
 #include <dhd_bus.h>
 #include <dhd_proto.h>
-#include <dhd_dbg.h>
+#include <dhd_dbg.h> 
+
+#include <mach/msm_bus.h>
 
 /*
  * NOTE: to enable keep alive, define KEEP_ALIVE here
  * or in the makefile, also must use -keepalive- firmware
  * keep_alive needs htodXX(), le/be  macro
  */
+
+#ifdef CONFIG_PERFLOCK
+#include <mach/perflock.h>
+#endif
+
+#ifdef CONFIG_PERFLOCK
+struct perf_lock *wlan_perf_lock;
+#endif
+
+struct msm_bus_scale_pdata *bus_scale_table = NULL;
+uint32_t bus_perf_client = 0;
+
+void wlan_lock_perf(void)
+{
+	unsigned ret;
+#ifdef CONFIG_PERFLOCK
+	if (!is_perf_lock_active(wlan_perf_lock))
+		perf_lock(wlan_perf_lock);
+#endif
+	
+	if (bus_perf_client) {
+		ret = msm_bus_scale_client_update_request(
+				bus_perf_client, 1);
+		if (ret)
+			printf("%s: Failed to vote for "
+					"bus bandwidth %d\n", __func__, ret);
+	}
+}
+
+void wlan_unlock_perf(void)
+{
+	unsigned ret;
+#ifdef CONFIG_PERFLOCK
+	if (is_perf_lock_active(wlan_perf_lock))
+		perf_unlock(wlan_perf_lock);
+#endif
+	
+	if (bus_perf_client) {
+		ret = msm_bus_scale_client_update_request(
+				bus_perf_client, 0);
+		if (ret)
+			printf("%s: Failed to devote "
+					"for bus bw %d\n", __func__, ret);
+	}
+}
+
+void wlan_init_perf(void)
+{
+#ifdef CONFIG_PERFLOCK
+	wlan_perf_lock = perflock_acquire("bcmdhd");
+	perf_lock_init(wlan_perf_lock, TYPE_PERF_LOCK, PERF_LOCK_HIGHEST, "bcmdhd");
+#endif
+}
+
+void wlan_deinit_perf(void)
+{
+#ifdef CONFIG_PERLOCK
+	if (is_perf_lock_active(wlan_perf_lock))
+		perf_unlock(wlan_perf_lock);
+	perflock_release("bcmdhd");
+#endif
+}
 
 dhd_pub_t *priv_dhdp = NULL;
 
