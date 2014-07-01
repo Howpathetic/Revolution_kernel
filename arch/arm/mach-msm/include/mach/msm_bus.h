@@ -15,6 +15,7 @@
 
 #include <linux/types.h>
 #include <linux/input.h>
+#include <linux/platform_device.h>
 
 #define IB_RECURRBLOCK(Ws, Bs) ((Ws) == 0 ? 0 : ((Bs)/(Ws)))
 #define AB_RECURRBLOCK(Ws, Per) ((Ws) == 0 ? 0 : ((Bs)/(Per)))
@@ -75,6 +76,18 @@ static inline int msm_bus_axi_porthalt(int master_port)
 static inline int msm_bus_axi_portunhalt(int master_port)
 {
 	return 0;
+}
+#endif
+
+#ifdef CONFIG_OF
+struct msm_bus_scale_pdata *msm_bus_cl_get_pdata(struct platform_device *pdev);
+
+#else
+
+static inline struct msm_bus_scale_pdata
+*msm_bus_cl_get_pdata(struct platform_device *pdev)
+{
+	return NULL;
 }
 #endif
 
