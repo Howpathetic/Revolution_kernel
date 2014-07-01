@@ -11,7 +11,7 @@
  * GNU General Public License for more details.
  *
  */
- 
+
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/gpio.h>

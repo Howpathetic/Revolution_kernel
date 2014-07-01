@@ -51,6 +51,8 @@ release_pmu(enum arm_pmu_type type)	{ }
 
 #endif 
 
+#ifdef CONFIG_HW_PERF_EVENTS
+
 struct pmu_hw_events {
 	struct perf_event	**events;
 
@@ -58,8 +60,6 @@ struct pmu_hw_events {
 
 	raw_spinlock_t		pmu_lock;
 };
-
-#ifdef CONFIG_HW_PERF_EVENTS
 
 struct arm_pmu {
 	struct pmu	pmu;

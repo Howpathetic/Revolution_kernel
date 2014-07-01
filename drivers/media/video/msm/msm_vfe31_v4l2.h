@@ -776,11 +776,11 @@ struct vfe31_frame_extra {
 #define VFE_DMI_DATA_LO                  0x000005A4
 #define VFE_AXI_CFG                      0x00000600
 
-//#define VFE31_OUTPUT_MODE_PT		BIT(0)
-//#define VFE31_OUTPUT_MODE_S			BIT(1)
-//#define VFE31_OUTPUT_MODE_V			BIT(2)
-//#define VFE31_OUTPUT_MODE_P			BIT(3)
-//#define VFE31_OUTPUT_MODE_T			BIT(4)
+#define VFE31_OUTPUT_MODE_PT		BIT(0)
+#define VFE31_OUTPUT_MODE_S			BIT(1)
+#define VFE31_OUTPUT_MODE_V			BIT(2)
+#define VFE31_OUTPUT_MODE_P			BIT(3)
+#define VFE31_OUTPUT_MODE_T			BIT(4)
 #define VFE31_OUTPUT_MODE_P_ALL_CHNLS		BIT(5)
 #define VFE31_OUTPUT_MODE_PRIMARY		BIT(6)
 #define VFE31_OUTPUT_MODE_PRIMARY_ALL_CHNLS	BIT(7)

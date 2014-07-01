@@ -886,11 +886,6 @@ static int check_firmware(struct dvb_frontend *fe, unsigned int type,
 	v4l2_std_id		   std0;
 	u8			   hw_major, hw_minor, fw_major, fw_minor;
 
-	fw_minor = 0;
-	fw_major = 0;
-	hw_minor = 0;
-	hw_major = 0;
-	
 	dprintk(1, "%s called\n", __func__);
 
 	if (!priv->firm) {

@@ -2613,6 +2613,7 @@ config MACH_SHOOTER_U
 	depends on ARCH_MSM8X60
 	default n
 	bool "shooter_u"
+	select FB_MSM_MIPI_DSI
 	help
 	  Support for the Shooter_U device.
 

@@ -89,7 +89,7 @@ static int codec_spi_read(unsigned char addr, unsigned char *data)
 
 	codec_dev->bits_per_word = 16;
 	buffer[0] = addr << 1 | 1;
-	rc = spi_write_and_read(codec_dev, buffer, result, 2);
+	rc = spi_write_then_read(codec_dev, buffer, 2, result, 2);
 	if (rc < 0)
 		return rc;
 
@@ -169,7 +169,7 @@ static int aic3254_config(CODEC_SPI_CMD *cmds, int size)
 							__func__, ret);
 					else if (data == cmds[i].data)
 						break;
-					hr_msleep(1);
+					msleep(1);
 				}
 				if (retry <= 0)
 					pr_aud_info("3254 power down procedure"
@@ -178,7 +178,7 @@ static int aic3254_config(CODEC_SPI_CMD *cmds, int size)
 						ret, cmds[i].data);
 				break;
 			case 'd':
-				hr_msleep(cmds[i].data);
+				msleep(cmds[i].data);
 				break;
 			default:
 				break;
@@ -218,14 +218,14 @@ static int aic3254_config_ex(CODEC_SPI_CMD *cmds, int size)
 		/* pr_info("%s: size = %d", __func__, size); */
 	}
 
-	spi_t_cmds = (struct spi_transfer *) kmalloc(size*sizeof(struct spi_transfer), GFP_KERNEL);
+	spi_t_cmds = kmalloc(size*sizeof(struct spi_transfer), GFP_KERNEL);
 	if (spi_t_cmds == NULL) {
 		pr_aud_err("%s: kmalloc spi transfer struct fail\n", __func__);
 		goto error;
 	} else
 		memset(spi_t_cmds, 0, size*sizeof(struct spi_transfer));
 
-	buffer = (unsigned char *) kmalloc(size * 2 * sizeof(unsigned char), GFP_KERNEL);
+	buffer = kmalloc(size * 2 * sizeof(unsigned char), GFP_KERNEL);
 	if (buffer == NULL) {
 		pr_aud_err("%s: kmalloc buffer fail\n", __func__);
 		goto error;
@@ -251,11 +251,8 @@ static int aic3254_config_ex(CODEC_SPI_CMD *cmds, int size)
 		ctl_ops->spibus_enable(0);
 
 error:
-	if (buffer)
-		kfree(buffer);
-
-	if (spi_t_cmds)
-		kfree(spi_t_cmds);
+	kfree(buffer);
+	kfree(spi_t_cmds);
 	return ret;
 }
 
@@ -979,9 +976,8 @@ static void spi_aic3254_prevent_sleep(void)
 	struct ecodec_aic3254_state *codec_drv = &codec_clk;
 
 	wake_lock(&codec_drv->wakelock);
-	// wake_lock(&codec_drv->idlelock);
-
-	pm_qos_update_request(&codec_drv->pm_qos_req, msm_cpuidle_get_deep_idle_latency());
+	pm_qos_update_request(&codec_drv->pm_qos_req,
+			msm_cpuidle_get_deep_idle_latency());
 }
 
 static void spi_aic3254_allow_sleep(void)
