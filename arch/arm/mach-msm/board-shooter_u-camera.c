@@ -33,10 +33,10 @@
 
 // static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power);
 // static int camera_sensor_power_disable(struct regulator *sensor_power);
-// static struct platform_device msm_camera_server = {
-	// .name = "msm_cam_server",
-	// .id = 0,
-// };
+static struct platform_device msm_camera_server = {
+	.name = "msm_cam_server",
+	.id = 0,
+};
 
 #ifdef CONFIG_MSM_CAMERA
 static struct msm_bus_vectors cam_init_vectors[] = {
@@ -489,7 +489,7 @@ static void shooter_u_config_camera_off_gpios(void)
 	gpio_set_value(SHOOTER_U_CAM_SEL, 0);
 }
 
-#ifdef CONFIG_QS_S5K4E1
+#ifdef CONFIG_S5K4E1
 static int shooter_u_qs_s5k4e1_vreg_on(void)
 {
 	int rc = 0;
@@ -566,7 +566,7 @@ init_fail:
 static int shooter_u_qs_s5k4e1_vreg_off(void)
 {
 	int rc = 0;
-	pr_info("[CAM] %s\n", __func__, system_rev);
+//	pr_info("[CAM] %s\n", __func__, system_rev);
 	gpio_set_value(SHOOTER_U_S5K4E1_INTB, 0);
 	gpio_set_value(SHOOTER_U_S5K4E1_VCM_PD, 0);
 	gpio_set_value(SHOOTER_U_S5K4E1_PD, 0);
@@ -610,7 +610,7 @@ static int shooter_u_qs_s5k4e1_vreg_off(void)
 		}
 	}
 
-	if (!(system_rev == 0x80) {
+	if (!(system_rev == 0x80)) {
 		rc = camera_sensor_power_disable(shooter_u_reg_8058_l15);
 		pr_info("[CAM] camera_sensor_power_disable(\"8058_l15\", 2.8V) == %d\n", rc);
 		if (rc < 0) {
@@ -636,7 +636,6 @@ init_fail:
 		return rc;
 }
 
-#ifdef CONFIG_QS_S5K4E1_ACT
 static struct i2c_board_info qs_s5k4e1_actuator_i2c_info = {
 	I2C_BOARD_INFO("qs_s5k4e1_act", 0x11),
 };
@@ -644,7 +643,7 @@ static struct i2c_board_info qs_s5k4e1_actuator_i2c_info = {
 static struct msm_actuator_info qs_s5k4e1_actuator_info = {
 	.board_info     = &qs_s5k4e1_actuator_i2c_info,
 	.bus_id         = MSM_GSBI4_QUP_I2C_BUS_ID,
-	.vcm_pwd        = SHOOTER_U_GPIO_CAM_VCM_PD,
+//	.vcm_pwd        = SHOOTER_U_GPIO_CAM_VCM_PD,
 };
 #endif
 
@@ -676,13 +675,12 @@ static struct msm_camera_sensor_info msm_camera_sensor_qs_s5k4e1_data = {
 	.sensor_platform_info = &sensor_qs_s5k4e1_board_info,
 	.csi_if	= 1,
 	.camera_type = BACK_CAMERA_2D,
-#ifdef CONFIG_QS_S5K4E1_ACT
+//#ifdef CONFIG_QS_S5K4E1_ACT
 	.actuator_info = &qs_s5k4e1_actuator_info,
-#endif
+//#endif
 	.use_rawchip = RAWCHIP_DISABLE,
 	.flash_cfg = &msm_camera_sensor_qs_s5k4e1_flash_cfg,
 };
-#endif
 
 #ifdef CONFIG_SP3D
 static int shooter_u_sp3d_vreg_on(void)
@@ -775,7 +773,7 @@ static int shooter_u_sp3d_vreg_off(void)
 	}
 	udelay(10);
 	
-	if (!(system_rev == 0x80) {
+	if (!(system_rev == 0x80)) {
 		rc = camera_sensor_power_disable(shooter_u_reg_8058_l15);
 		pr_info("[CAM] camera_sensor_power_disable(\"8058_l15\", 2.8V) == %d\n", rc);
 		if (rc < 0) {
