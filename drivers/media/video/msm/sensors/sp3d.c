@@ -21,6 +21,8 @@
 #include <linux/uaccess.h>
 #include <linux/miscdevice.h>
 #include <linux/slab.h>
+#include <linux/module.h>
+#include <linux/export.h>
 #include <media/msm_camera_sensor.h>
 #include <mach/gpio.h>
 #include <mach/camera-8x60.h>

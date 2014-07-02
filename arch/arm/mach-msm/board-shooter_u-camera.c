@@ -33,10 +33,10 @@
 
 // static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power);
 // static int camera_sensor_power_disable(struct regulator *sensor_power);
-static struct platform_device msm_camera_server = {
-	.name = "msm_cam_server",
-	.id = 0,
-};
+//static struct platform_device msm_camera_server = {
+//	.name = "msm_cam_server",
+//	.id = 0,
+//};
 
 #ifdef CONFIG_MSM_CAMERA
 static struct msm_bus_vectors cam_init_vectors[] = {

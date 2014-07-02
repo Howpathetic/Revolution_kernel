@@ -21,6 +21,8 @@
 #include <linux/i2c.h>
 #include <linux/uaccess.h>
 #include <linux/miscdevice.h>
+#include <linux/module.h>
+#include <linux/export.h>
 
 #ifdef CONFIG_MSM_CAMERA_8X60
 #include <mach/camera-8x60.h>
