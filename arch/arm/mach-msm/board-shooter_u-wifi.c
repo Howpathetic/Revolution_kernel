@@ -1,3 +1,5 @@
+/* linux/arch/arm/mach-msm/board-shooter_u-wifi.c
+*/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
@@ -114,16 +116,16 @@ static unsigned shooter_u_wifi_update_nvs(char *str)
 	if (!str)
 		return -EINVAL;
 	ptr = get_wifi_nvs_ram();
-	
+	/* Size in format LE assumed */
 	memcpy(&len, ptr + NVS_LEN_OFFSET, sizeof(len));
 
-	
+	/* the last bye in NVRAM is 0, trim it */
 	if (ptr[NVS_DATA_OFFSET + len - 1] == 0)
 		len -= 1;
 
-	if (ptr[NVS_DATA_OFFSET + len - 1] != '\n') {
+	if (ptr[NVS_DATA_OFFSET + len -1] != '\n') {
 		len += 1;
-		ptr[NVS_DATA_OFFSET + len - 1] = '\n';
+		ptr[NVS_DATA_OFFSET + len -1] = '\n';
 	}
 
 	strcpy(ptr + NVS_DATA_OFFSET + len, str);
@@ -133,93 +135,100 @@ static unsigned shooter_u_wifi_update_nvs(char *str)
 }
 
 #ifdef HW_OOB
-static unsigned strip_nvs_param(char *param)
+static unsigned strip_nvs_param(char* param)
 {
-	unsigned char *nvs_data;
+        unsigned char *nvs_data;
 
-	unsigned param_len;
-	int start_idx, end_idx;
+        unsigned param_len;
+        int start_idx, end_idx;
 
-	unsigned char *ptr;
-	unsigned len;
+        unsigned char *ptr;
+        unsigned len;
 
-	if (!param)
-		return -EINVAL;
-	ptr = get_wifi_nvs_ram();
-	
-	memcpy(&len, ptr + NVS_LEN_OFFSET, sizeof(len));
+        if (!param)
+                return -EINVAL;
+        ptr = get_wifi_nvs_ram();
+        /* Size in format LE assumed */
+        memcpy(&len, ptr + NVS_LEN_OFFSET, sizeof(len));
 
-	
-	if (ptr[NVS_DATA_OFFSET + len - 1] == 0)
-		len -= 1;
+        /* the last bye in NVRAM is 0, trim it */
+        if (ptr[NVS_DATA_OFFSET + len -1] == 0)
+                len -= 1;
 
-	nvs_data = ptr + NVS_DATA_OFFSET;
+        nvs_data = ptr + NVS_DATA_OFFSET;
 
-	param_len = strlen(param);
+        param_len = strlen(param);
 
-	
-	for (start_idx = 0; start_idx < len - param_len; start_idx++) {
-		if (memcmp(&nvs_data[start_idx], param, param_len) == 0)
-			break;
-	}
+        /* search param */
+        for (start_idx = 0; start_idx < len - param_len; start_idx++) {
+                if (memcmp(&nvs_data[start_idx], param, param_len) == 0) {
+                        break;
+                }
+        }
 
-	end_idx = 0;
-	if (start_idx < len - param_len) {
-		
-		for (end_idx = start_idx + param_len; end_idx < len; end_idx++) {
-			if (nvs_data[end_idx] == '\n' || nvs_data[end_idx] == 0)
-				break;
-		}
-	}
+        end_idx = 0;
+        if (start_idx < len - param_len) {
+                /* search end-of-line */
+                for (end_idx = start_idx + param_len; end_idx < len; end_idx++) {
+                        if (nvs_data[end_idx] == '\n' || nvs_data[end_idx] == 0) {
+                                break;
+                        }
+                }
+        }
 
-	if (start_idx < end_idx) {
-		
-		for (; end_idx + 1 < len; start_idx++, end_idx++)
-			nvs_data[start_idx] = nvs_data[end_idx+1];
-
-		len = len - (end_idx - start_idx + 1);
-		memcpy(ptr + NVS_LEN_OFFSET, &len, sizeof(len));
-	}
-	return 0;
+        if (start_idx < end_idx) {
+                /* move the remain data forward */
+                for (; end_idx + 1 < len; start_idx++, end_idx++) {
+                        nvs_data[start_idx] = nvs_data[end_idx+1];
+                }
+                len = len - (end_idx - start_idx + 1);
+                memcpy(ptr + NVS_LEN_OFFSET, &len, sizeof(len));
+        }
+        return 0;
 }
 #endif
 
 #define WIFI_MAC_PARAM_STR     "macaddr="
-#define WIFI_MAX_MAC_LEN       17 
+#define WIFI_MAX_MAC_LEN       17 /* XX:XX:XX:XX:XX:XX */
 
 static uint
-get_mac_from_wifi_nvs_ram(char *buf, unsigned int buf_len)
+get_mac_from_wifi_nvs_ram(char* buf, unsigned int buf_len)
 {
-	uint len = 0;
 	unsigned char *nvs_ptr;
 	unsigned char *mac_ptr;
+	uint len = 0;
 
-	if (!buf || !buf_len)
+	if (!buf || !buf_len) {
 		return 0;
+	}
+
 	nvs_ptr = get_wifi_nvs_ram();
-	if (nvs_ptr)
+	if (nvs_ptr) {
 		nvs_ptr += NVS_DATA_OFFSET;
+	}
 
 	mac_ptr = strstr(nvs_ptr, WIFI_MAC_PARAM_STR);
 	if (mac_ptr) {
 		mac_ptr += strlen(WIFI_MAC_PARAM_STR);
 
-		
-		while (mac_ptr[0] == ' ')
+		/* skip leading space */
+		while (mac_ptr[0] == ' ') {
 			mac_ptr++;
+		}
 
-		
+		/* locate end-of-line */
 		len = 0;
 		while (mac_ptr[len] != '\r' && mac_ptr[len] != '\n' &&
 			mac_ptr[len] != '\0') {
 			len++;
 		}
 
-		if (len > buf_len)
+		if (len > buf_len) {
 			len = buf_len;
-
+		}
 		memcpy(buf, mac_ptr, len);
 	}
+
 	return len;
 }
 
@@ -234,20 +243,21 @@ int shooter_u_wifi_get_mac_addr(unsigned char *buf)
 
 	mac_len = get_mac_from_wifi_nvs_ram(mac, WIFI_MAX_MAC_LEN);
 	if (mac_len > 0) {
-		
-		sscanf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",
+		/* Mac address to pattern */
+		sscanf( mac, "%02x:%02x:%02x:%02x:%02x:%02x",
 		&macpattern[0], &macpattern[1], &macpattern[2],
 		&macpattern[3], &macpattern[4], &macpattern[5]
 		);
 
-		for (i = 0; i < ETHER_ADDR_LEN; i++)
+		for(i = 0; i < ETHER_ADDR_LEN; i++) {
 			ether_mac_addr[i] = (u8)macpattern[i];
+		}
 	}
 
 	memcpy(buf, ether_mac_addr, sizeof(ether_mac_addr));
 
 	printk(KERN_INFO"shooter_u_wifi_get_mac_addr = %02x %02x %02x %02x %02x %02x \n",
-		ether_mac_addr[0], ether_mac_addr[1], ether_mac_addr[2], ether_mac_addr[3], ether_mac_addr[4], ether_mac_addr[5]);
+		ether_mac_addr[0],ether_mac_addr[1],ether_mac_addr[2],ether_mac_addr[3],ether_mac_addr[4],ether_mac_addr[5]);
 
 	return 0;
 }

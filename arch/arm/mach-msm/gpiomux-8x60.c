@@ -16,6 +16,7 @@
 #include "gpiomux-8x60.h"
 
 /* The SPI configurations apply to GSBI1 and GSBI10 */
+/*
 static struct gpiomux_setting spi_active = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
@@ -33,7 +34,7 @@ static struct gpiomux_setting spi_suspended_cs_config = {
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
-
+*/
 /* This I2C active configuration applies to GSBI3 and GSBI4 */
 static struct gpiomux_setting i2c_active = {
 	.func = GPIOMUX_FUNC_1,
@@ -127,6 +128,8 @@ static struct gpiomux_setting pmic_suspended_cfg = {
 };
 
 static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
+/* This pin in Rider, Shooter, and VilleC2 is not used, do not operate it. */
+#if !(defined(CONFIG_MACH_RIDER) || defined(CONFIG_MACH_SHOOTER) || defined(CONFIG_MACH_SHOOTER_U) || defined(CONFIG_MACH_SHOOTER_CT) || defined(CONFIG_MACH_VILLEC2))
 	{
 		.gpio      = 33,
 		.settings = {
@@ -155,6 +158,7 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#endif
 	{
 		.gpio      = 43,
 		.settings = {
@@ -162,6 +166,8 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &i2c_active,
 		},
 	},
+/* This pin in Rider, Shooter, and VilleC2 is not used, do not operate it. */
+#if !(defined(CONFIG_MACH_RIDER) || defined(CONFIG_MACH_SHOOTER) || defined(CONFIG_MACH_SHOOTER_U) || defined(CONFIG_MACH_SHOOTER_CT) || defined(CONFIG_MACH_VILLEC2))
 	{
 		.gpio      = 44,
 		.settings = {
@@ -169,6 +175,7 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &i2c_active,
 		},
 	},
+#endif
 };
 
 static struct msm_gpiomux_config msm8x60_uart_configs[] __initdata = {

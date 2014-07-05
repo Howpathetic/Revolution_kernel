@@ -1,4 +1,6 @@
-/* Copyright (C) 2008 HTC Corporation.
+/* linux/arch/arm/mach-msm/board-shooter_u-mmc.c
+ *
+ * Copyright (C) 2008 HTC Corporation.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -28,25 +30,25 @@
 #include <mach/htc_pwrsink.h>
 
 #include <asm/mach/mmc.h>
-#include <mach/msm_iomap.h>
-#include <linux/mfd/pmic8058.h>
-#include <mach/htc_sleep_clk.h>
 
 #include "devices.h"
 #include "board-shooter_u.h"
 #include <mach/proc_comm.h>
-#include "board-shooter-mmc.h"
-#include <mach/mpm.h>
-
+#include <mach/msm_iomap.h>
+#include <linux/mfd/pmic8058.h>
+#include <mach/htc_sleep_clk.h>
 #include <linux/irq.h>
+#include "board-shooter-mmc.h"
 
 #include <mach/rpm.h>
 #include <mach/rpm-regulator.h>
 
+#include <mach/mpm.h>
 #include "rpm_resources.h"
 
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2);
 
+/* ---- PM QOS ---- */
 static struct msm_rpmrs_level msm_rpmrs_levels[] = {
 	{
 		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT,
@@ -117,30 +119,37 @@ static uint32_t msm_rpm_get_swfi_latency(void)
 	return 0;
 }
 
+/* ---- SDCARD ---- */
+/* ---- WIFI ---- */
+
 #define PM8058_GPIO_BASE			NR_MSM_GPIOS
 #define PM8058_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + PM8058_GPIO_BASE)
 #define PM8058_GPIO_SYS_TO_PM(sys_gpio)		(sys_gpio - PM8058_GPIO_BASE)
 
 static uint32_t wifi_on_gpio_table[] = {
-	GPIO_CFG(SHOOTER_U_GPIO_WIFI_IRQ, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_4MA), 
+	GPIO_CFG(SHOOTER_U_GPIO_WIFI_IRQ, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_4MA), /* WLAN IRQ */
 };
 
 static uint32_t wifi_off_gpio_table[] = {
-	GPIO_CFG(SHOOTER_U_GPIO_WIFI_IRQ, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_4MA), 
+	GPIO_CFG(SHOOTER_U_GPIO_WIFI_IRQ, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_4MA), /* WLAN IRQ */
 };
 
 static void config_gpio_table(uint32_t *table, int len)
 {
-	int n, rc;
-	for (n = 0; n < len; n++) {
-		rc = gpio_tlmm_config(table[n], GPIO_CFG_ENABLE);
-		if (rc) {
-			pr_err("%s: gpio_tlmm_config(%#x)=%d\n", __func__, table[n], rc);
-			break;
-		}
-	}
+        int n, rc;
+        for (n = 0; n < len; n++) {
+                rc = gpio_tlmm_config(table[n], GPIO_CFG_ENABLE);
+                if (rc) {
+                        pr_err("%s: gpio_tlmm_config(%#x)=%d\n",
+                                __func__, table[n], rc);
+                        break;
+                }
+        }
 }
 
+/* BCM4329 returns wrong sdio_vsn(1) when we read cccr,
+ * we use predefined value (sdio_vsn=2) here to initial sdio driver well
+ */
 static struct embedded_sdio_data shooter_u_wifi_emb_data = {
 	.cccr	= {
 		.sdio_vsn	= 2,
@@ -167,7 +176,7 @@ shooter_u_wifi_status_register(void (*callback)(int card_present, void *dev_id),
 	return 0;
 }
 
-static int shooter_u_wifi_cd; 
+static int shooter_u_wifi_cd;	/* WiFi virtual 'card detect' status */
 
 static unsigned int shooter_u_wifi_status(struct device *dev)
 {
@@ -215,9 +224,9 @@ int shooter_u_wifi_power(int on)
 		config_gpio_table(wifi_off_gpio_table,
 				  ARRAY_SIZE(wifi_off_gpio_table));
 	}
-	
-	mdelay(1);
-	gpio_set_value(SHOOTER_U_GPIO_WIFI_SHUTDOWN_N, on); 
+	/* htc_wifi_bt_sleep_clk_ctl(on, ID_WIFI); */
+	mdelay(1);//Delay 1 ms, Recommand by Hardware
+	gpio_set_value(SHOOTER_U_GPIO_WIFI_SHUTDOWN_N, on); /* WIFI_SHUTDOWN */
 
 	mdelay(120);
 	return 0;
@@ -237,6 +246,7 @@ int __init shooter_u_init_mmc()
 
 	printk(KERN_INFO "shooter_u: %s\n", __func__);
 
+	/* initial WIFI_SHUTDOWN# */
 	id = GPIO_CFG(SHOOTER_U_GPIO_WIFI_SHUTDOWN_N, 0, GPIO_CFG_OUTPUT,
 		GPIO_CFG_NO_PULL, GPIO_CFG_2MA);
 	gpio_tlmm_config(id, 0);

@@ -1,5 +1,6 @@
 /* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  * Copyright (c) 2014 Jaka Valenko <jaka.valenko6@gmail.com>
+ * Copyright (c) 2014 Jakub Skopal <jakub.skopal1@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -11,7 +12,7 @@
  * GNU General Public License for more details.
  *
  */
- 
+
 #include <asm/mach-types.h>
 #include <linux/i2c.h>
 #include <linux/gpio.h>
@@ -31,12 +32,14 @@
 #include <linux/leds.h>
 #endif
 
-// static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power);
-// static int camera_sensor_power_disable(struct regulator *sensor_power);
-//static struct platform_device msm_camera_server = {
-//	.name = "msm_cam_server",
-//	.id = 0,
-//};
+//MSM FOLDER AND SENSORS ADAPT
+//static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power);
+//static int camera_sensor_power_disable(struct regulator *sensor_power);
+/*static struct platform_device msm_camera_server = {
+	.name = "msm_cam_server",
+	.id = 0,
+};
+*/
 
 #ifdef CONFIG_MSM_CAMERA
 static struct msm_bus_vectors cam_init_vectors[] = {
@@ -232,6 +235,434 @@ static struct msm_bus_scale_pdata cam_bus_client_pdata = {
 		.name = "msm_camera",
 };
 
+#ifdef CONFIG_SP3D
+static uint32_t sp3d_spi_gpio[] = {
+	/* or this? the i/o direction and up/down are much more correct */
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO,  1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI,  1, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS,  1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+};
+
+static uint32_t camera_off_gpio_table_sp3d[] = {
+	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),/*i2c*/
+	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),/*i2c*/
+	GPIO_CFG(SHOOTER_U_SP3D_MCLK		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*MCLK*/
+	GPIO_CFG(SHOOTER_U_SP3D_INT		, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),/*sharp INT*/
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI	, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_GATE		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_CORE_GATE	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SYS_RST	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_PDX		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_WEBCAM_RST	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*camera reset*/
+	GPIO_CFG(SHOOTER_U_WEBCAM_STB	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*camera standby*/
+	GPIO_CFG(SHOOTER_U_CAM_SEL		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*camera switch*/
+};
+
+static uint32_t camera_on_gpio_table_sp3d[] = {
+	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_SP3D_MCLK		, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*MCLK*/
+	GPIO_CFG(SHOOTER_U_SP3D_INT		, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI	, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_GATE		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_CORE_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SYS_RST	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_PDX		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_WEBCAM_RST	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_WEBCAM_STB	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_CAM_SEL		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+};
+#endif
+
+#ifdef CONFIG_QS_S5K4E1
+static uint32_t camera_off_gpio_table_liteon[] = {
+	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),/*i2c*/
+	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),/*i2c*/
+	GPIO_CFG(SHOOTER_U_SP3D_MCLK		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*MCLK*/
+	GPIO_CFG(SHOOTER_U_SP3D_INT		, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),/*sharp INT*/
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO	, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI	, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS	, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK	, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_S5K4E1_VCM_PD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_S5K4E1_INTB, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_S5K4E1_PD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_WEBCAM_RST	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*camera reset*/
+	GPIO_CFG(SHOOTER_U_WEBCAM_STB	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*camera standby*/
+	GPIO_CFG(SHOOTER_U_CAM_SEL		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*camera switch*/
+};
+
+static uint32_t camera_on_gpio_table_liteon[] = {
+	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_SP3D_MCLK		, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*MCLK*/
+	GPIO_CFG(SHOOTER_U_SP3D_INT		, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO	, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI	, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS	, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK	, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_S5K4E1_VCM_PD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_S5K4E1_INTB, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_S5K4E1_PD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+	GPIO_CFG(SHOOTER_U_WEBCAM_RST	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_WEBCAM_STB	, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(SHOOTER_U_CAM_SEL		, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+};
+#endif
+
+static struct regulator *shooter_u_reg_8901_l6 = NULL;
+static struct regulator *shooter_u_reg_8058_l8 = NULL;
+static struct regulator *shooter_u_reg_8058_l9 = NULL;
+static struct regulator *shooter_u_reg_8058_l10 = NULL;
+static struct regulator *shooter_u_reg_8058_l15 = NULL;
+
+static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power)
+{
+	int rc;
+
+	if (power == NULL)
+		return -ENODEV;
+
+	*sensor_power = regulator_get(NULL, power);
+	if (IS_ERR(sensor_power)) {
+		pr_err("[CAM] %s: Unable to get %s\n", __func__, power);
+		return -ENODEV;
+	}
+	rc = regulator_set_voltage(*sensor_power, volt, volt);
+	if (rc) {
+		pr_err("[CAM] %s: unable to set %s voltage to %d rc:%d\n",
+			__func__, power, volt, rc);
+		regulator_put(*sensor_power);
+		*sensor_power = NULL;
+		return -ENODEV;
+	}
+	rc = regulator_enable(*sensor_power);
+	if (rc) {
+		pr_err("[CAM] %s: Enable regulator %s failed\n", __func__, power);
+		regulator_put(*sensor_power);
+		*sensor_power = NULL;
+		return -ENODEV;
+	}
+
+	return rc;
+}
+
+static struct regulator *shooter_u_reg_8901_lvs2 = NULL;
+static struct regulator *shooter_u_reg_8901_lvs3 = NULL;
+
+static int camera_sensor_power_enable_8901(char *power, struct regulator **sensor_power)
+{
+	int rc;
+	pr_info("%s %s\n", __func__, power);
+	if (power == NULL)
+		return -ENODEV;
+
+	*sensor_power = regulator_get(NULL, power);
+	if (IS_ERR(sensor_power)) {
+		pr_err("[CAM] %s: Unable to get %s\n", __func__, power);
+		return -ENODEV;
+	}
+	rc = regulator_enable(*sensor_power);
+	if (rc) {
+		pr_err("[CAM] %s: Enable regulator %s failed\n", __func__, power);
+		regulator_put(*sensor_power);
+		*sensor_power = NULL;
+		return -ENODEV;
+	}
+
+	return rc;
+}
+
+static int camera_sensor_power_disable(struct regulator *sensor_power)
+{
+	int rc;
+
+	if (sensor_power == NULL)
+		return -ENODEV;
+
+	if (IS_ERR(sensor_power)) {
+		pr_err("[CAM] %s: Invalid regulator ptr\n", __func__);
+		return -ENODEV;
+	}
+	rc = regulator_disable(sensor_power);
+	if (rc) {
+		pr_err("[CAM] %s: Disable regulator failed\n", __func__);
+		regulator_put(sensor_power);
+		sensor_power = NULL;
+		return -ENODEV;
+	}
+	regulator_put(sensor_power);
+	sensor_power = NULL;
+	return rc;
+}
+
+static void shooter_u_set_gpio(int gpio, int state)
+{
+	gpio_set_value(gpio, state);
+}
+
+#ifdef CONFIG_SP3D
+static int Shooter_U_sp3d_vreg_on(void)
+{
+	int rc = 0;
+	pr_info("[CAM] %s %d\n", __func__, system_rev);
+	/* VDDIO*/
+	if (system_rev == 0x80) {/*VERSION A*/
+
+		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
+		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1800) == %d\n", rc);
+		udelay(26);
+		/*DVDD18 */
+		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
+		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1800) == %d\n", rc);
+	} else {
+		rc = camera_sensor_power_enable("8058_l8", 1800000, &shooter_u_reg_8058_l8);
+		pr_info("[CAM] sensor_power_enable(\"8058_l8\", 1800) == %d\n", rc);
+		udelay(26);
+		/*DVDD18 */
+		rc = camera_sensor_power_enable("8058_l9", 1800000, &shooter_u_reg_8058_l9);
+		pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1800) == %d\n", rc);
+	}
+	shooter_u_set_gpio(SHOOTER_U_SP3D_CORE_GATE, 1); /* CORE GATE */
+	shooter_u_set_gpio(SHOOTER_U_SP3D_SYS_RST, 1); /* RST */
+	shooter_u_set_gpio(SHOOTER_U_SP3D_PDX, 1); /* PDX */
+	shooter_u_set_gpio(SHOOTER_U_SP3D_GATE, 1); /* GATE */
+	/* main camera AVDD */
+	rc = camera_sensor_power_enable("8058_l15", 2800000, &shooter_u_reg_8058_l15);
+	pr_info("[CAM] sensor_power_enable(\"8058_l15\", 2800) == %d\n", rc);
+	/* main camera MVDD */
+	rc = camera_sensor_power_enable("8058_l10", 2800000, &shooter_u_reg_8058_l10);
+	pr_info("[CAM] sensor_power_enable(\"8058_l10\", 2800) == %d\n", rc);
+	gpio_tlmm_config(sp3d_spi_gpio[0], GPIO_CFG_ENABLE);
+	gpio_tlmm_config(sp3d_spi_gpio[1], GPIO_CFG_ENABLE);
+	gpio_tlmm_config(sp3d_spi_gpio[2], GPIO_CFG_ENABLE);
+	gpio_tlmm_config(sp3d_spi_gpio[3], GPIO_CFG_ENABLE);
+
+	return rc;
+}
+
+static int Shooter_U_sp3d_vreg_off(void)
+{
+
+	int rc = 0;
+	pr_info("[CAM] %s\n", __func__);
+	shooter_u_set_gpio(SHOOTER_U_SP3D_PDX, 0); /* PDX */
+	/* main camera MVDD */
+	rc = camera_sensor_power_disable(shooter_u_reg_8058_l10);
+	udelay(10);
+
+	/* according to optical Jason Kao, don't turn off l15 to avoid current leakage when liteon */
+	if (!(system_rev == 0x80 && engineerid == 0x1)) {
+		/* main camera AVDD */
+		rc = camera_sensor_power_disable(shooter_u_reg_8058_l15);
+		udelay(10);
+	}
+
+	/* main camera DVDD18 */
+	if (system_rev == 0x80)/*VERSION A*/
+		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs3);
+	else
+		rc = camera_sensor_power_disable(shooter_u_reg_8058_l9);
+
+	shooter_u_set_gpio(SHOOTER_U_SP3D_SYS_RST, 0); /* RST */
+	shooter_u_set_gpio(SHOOTER_U_SP3D_CORE_GATE, 0); /* CORE GATE */
+	shooter_u_set_gpio(SHOOTER_U_SP3D_GATE, 0); /* GATE */
+
+	if (system_rev == 0x80)/*VERSION A*/
+		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs2);
+	else
+		rc = camera_sensor_power_disable(shooter_u_reg_8058_l8);
+	return rc;
+}
+#endif
+
+#ifdef CONFIG_QS_S5K4E1
+static int Shooter_U_qs_s5k4e1_vreg_on(void)
+{
+	int rc = 0;
+	pr_info("[CAM] %s %x\n", __func__, system_rev);
+	mdelay(50);
+
+	rc = camera_sensor_power_enable("8058_l15", 2800000, &shooter_u_reg_8058_l15);
+	pr_info("[CAM] sensor_power_enable(\"8058_l15\", 1800) == %d\n", rc);
+	udelay(50);
+
+	if (system_rev == 0x80) {/*VERSION A*/
+		/*IO*//*This is switch power*/
+		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
+		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1800) == %d\n", rc);
+		mdelay(10);
+
+		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
+		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1800) == %d\n", rc);
+	} else {
+		rc = camera_sensor_power_enable("8058_l9", 1800000, &shooter_u_reg_8058_l9);
+		pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1800) == %d\n", rc);
+		/* VDDIO*/
+		rc = camera_sensor_power_enable("8058_l8", 1800000, &shooter_u_reg_8058_l8);
+		pr_info("[CAM] sensor_power_enable(\"8058_l8\", 1800) == %d\n", rc);
+	}
+	udelay(50);
+
+	/* main camera AVDD */
+	rc = camera_sensor_power_enable("8058_l10", 2800000, &shooter_u_reg_8058_l10);
+	pr_info("[[CAM] sensor_power_enable(\"8058_l10\", 2800) == %d\n", rc);
+	udelay(50);
+
+	shooter_u_set_gpio(SHOOTER_U_S5K4E1_INTB, 1);
+	shooter_u_set_gpio(SHOOTER_U_S5K4E1_PD, 1);
+	shooter_u_set_gpio(SHOOTER_U_S5K4E1_VCM_PD, 1);
+
+	return rc;
+}
+
+static int Shooter_U_qs_s5k4e1_vreg_off(void)
+{
+	int rc = 0;
+	pr_info("[CAM] %s\n", __func__);
+	shooter_u_set_gpio(SHOOTER_U_S5K4E1_INTB, 0); /* interrupt */
+	shooter_u_set_gpio(SHOOTER_U_S5K4E1_VCM_PD, 0); /* PDX */
+	shooter_u_set_gpio(SHOOTER_U_S5K4E1_PD, 0); /* RST */
+
+	/* main camera AVDD */
+	rc = camera_sensor_power_disable(shooter_u_reg_8058_l10);
+	udelay(50);
+
+	/*VDDIO*/
+	if (system_rev == 0x80) {/*VERSION A*/
+		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs2);
+		/*This is swich power*/
+		mdelay(10);
+
+		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs3);
+		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1800) == %d\n", rc);
+	} else {
+		/*This is swich power*/
+		rc = camera_sensor_power_disable(shooter_u_reg_8058_l9);
+		pr_info("[CAM] sensor_power_disable(\"8058_l9\") == %d\n", rc);
+		rc = camera_sensor_power_disable(shooter_u_reg_8058_l8);
+		pr_info("[CAM] sensor_power_disable(\"8058_l8\") == %d\n", rc);
+	}
+
+	/* according to optical Jason Kao, don't turn off l15 to avoid current leakage when liteon */
+	if (!(system_rev == 0x80 && engineerid == 0x1)) {
+		rc = camera_sensor_power_disable(shooter_u_reg_8058_l15);
+		udelay(50);
+	}
+
+	return rc;
+}
+#endif
+
+static int Shooter_U_s5k6aafx_vreg_on(void)
+{
+	int rc = 0;
+	pr_info("[CAM] %s\n", __func__);
+	/* main / 2nd camera analog power */
+	rc = camera_sensor_power_enable("8901_l6", 2850000, &shooter_u_reg_8901_l6);
+	pr_info("[CAM]sensor_power_enable(\"8901_l6\", 2850) == %d\n", rc);
+	mdelay(5);
+
+	if (system_rev == 0x80) {/*VERSION A*/
+		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
+		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1800) == %d\n", rc);
+		mdelay(10);
+
+		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
+		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1800) == %d\n", rc);
+	} else {
+		/* main / 2nd camera digital power */
+		rc = camera_sensor_power_enable("8058_l8", 1800000, &shooter_u_reg_8058_l8);
+		pr_info("[CAM] sensor_power_enable(\"8058_l8\", 1800) == %d\n", rc);
+		mdelay(5);
+		/*IO*/
+		rc = camera_sensor_power_enable("8058_l9", 1800000, &shooter_u_reg_8058_l9);
+		pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1800) == %d\n", rc);
+		mdelay(1);
+	}
+	return rc;
+}
+
+static int Shooter_U_s5k6aafx_vreg_off(void)
+{
+	int rc = 0;
+	pr_info("[CAM] %s\n", __func__);
+
+	if (system_rev == 0x80) {/*VERSION A*/
+		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs3);
+		pr_info("[CAM] sensor_power_disable(\"8901_lvs3\") == %d\n", rc);
+		/*This is swich power*/
+		mdelay(1);
+		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs2);
+		pr_info("[CAM] sensor_power_disable(\"8901_lvs2\") == %d\n", rc);
+		mdelay(1);
+	} else {
+		/* IO power off */
+		rc = camera_sensor_power_disable(shooter_u_reg_8058_l9);
+		pr_info("[CAM] sensor_power_disable(\"8058_l9\") == %d\n", rc);
+		mdelay(1);
+
+		/* main / 2nd camera digital power */
+		rc = camera_sensor_power_disable(shooter_u_reg_8058_l8);
+		pr_info("[CAM] sensor_power_disable(\"8058_l8\") == %d\n", rc);
+		mdelay(1);
+	}
+	/* main / 2nd camera analog power */
+	rc = camera_sensor_power_disable(shooter_u_reg_8901_l6);
+	pr_info("[CAM] sensor_power_disable(\"8901_l6\") == %d\n", rc);
+
+	return rc;
+}
+
+#define CLK_SWITCH 141
+static void Shooter_U_maincam_clk_switch(void)
+{
+	pr_info("[CAM] Doing clk switch (Main Cam)\n");
+	gpio_set_value(SHOOTER_U_CAM_SEL, 0);
+}
+
+static void Shooter_U_seccam_clk_switch(void)
+{
+	pr_info("[CAM] Doing clk switch (2nd Cam)\n");
+	gpio_set_value(SHOOTER_U_CAM_SEL, 1);
+}
+
+static int shooter_u_config_camera_on_gpios(void)
+{
+	if (system_rev == 0x80 && engineerid == 0x1) {
+		config_gpio_table(camera_on_gpio_table_liteon,
+			ARRAY_SIZE(camera_on_gpio_table_liteon));
+	} else {
+		config_gpio_table(camera_on_gpio_table_sp3d,
+			ARRAY_SIZE(camera_on_gpio_table_sp3d));
+	}
+
+	return 0;
+}
+
+static void shooter_u_config_camera_off_gpios(void)
+{
+	if (system_rev == 0x80 && engineerid == 0x1) {
+		config_gpio_table(camera_off_gpio_table_liteon,
+			ARRAY_SIZE(camera_off_gpio_table_liteon));
+	} else {
+		config_gpio_table(camera_off_gpio_table_sp3d,
+			ARRAY_SIZE(camera_off_gpio_table_sp3d));
+	}
+	shooter_u_set_gpio(SHOOTER_U_SP3D_SPI_DO, 0);
+	shooter_u_set_gpio(SHOOTER_U_SP3D_SPI_CS, 0);
+	shooter_u_set_gpio(SHOOTER_U_SP3D_SPI_CLK, 0);
+	shooter_u_set_gpio(SHOOTER_U_SP3D_MCLK, 0);
+	shooter_u_set_gpio(SHOOTER_U_CAM_SEL, 0);
+}
+
 struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 	{
 	.ioext.csiphy = 0x04800000,
@@ -260,7 +691,7 @@ struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 #ifdef CONFIG_MSM_CAMERA_FLASH
 int flashlight_control(int mode)
 {
-#ifdef CONFIG_FLASHLIGHT_AAT1277
+#if CONFIG_FLASHLIGHT_AAT1277
 	return aat1277_flashlight_control(mode);
 #else
 	return 0;
@@ -268,183 +699,118 @@ int flashlight_control(int mode)
 }
 
 static struct msm_camera_sensor_flash_src msm_flash_src = {
-	.flash_sr_type = MSM_CAMERA_FLASH_SRC_CURRENT_DRIVER,
-	.camera_flash = flashlight_control,
+	.flash_sr_type				= MSM_CAMERA_FLASH_SRC_CURRENT_DRIVER,
+	.camera_flash				= flashlight_control,
 };
 #endif
 
-static struct regulator *shooter_u_reg_8901_l6 = NULL;
-static struct regulator *shooter_u_reg_8058_l8 = NULL;
-static struct regulator *shooter_u_reg_8058_l9 = NULL;
-static struct regulator *shooter_u_reg_8058_l10 = NULL;
-static struct regulator *shooter_u_reg_8058_l15 = NULL;
-
-static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power)
-{
-	int rc;
-	
-	if (power == NULL)
-		return -ENODEV;
-		
-	*sensor_power = regulator_get(NULL, power);
-	
-	if (IS_ERR(*sensor_power)) {
-		pr_info("%s: failed to Unable to get %s\n", __func__, power);
-		return -ENODEV;
+static struct spi_board_info sp3d_spi_board_info[] __initdata = {
+	{
+		.modalias	= "sp3d_spi",
+		.mode		= SPI_MODE_3,
+		.bus_num	= 2,
+		.chip_select	= 0,
+		.max_speed_hz	= 15060000,
 	}
-	
-	if (volt != 1800000) {
-		rc = regulator_set_voltage(*sensor_power, volt, volt);
-		if (rc < 0) {
-			pr_info("%s: failed to unable to set %s voltage to %d rc:%d\n",
-					__func__, power, volt, rc);
-			regulator_put(*sensor_power);
-			*sensor_power = NULL;
-			return -ENODEV;
-		}
-	}
-
-	rc = regulator_enable(*sensor_power);
-	if (rc < 0) {
-		pr_info("%s: failed to Enable regulator %s failed\n", __func__, power);
-		regulator_put(*sensor_power);
-		*sensor_power = NULL;
-		return -ENODEV;
-	}
-
-	return rc;
-}
-
-static struct regulator *shooter_u_reg_8901_lvs2 = NULL;
-static struct regulator *shooter_u_reg_8901_lvs3 = NULL;
-
-static int camera_sensor_power_enable_8901(char *power, struct regulator **sensor_power)
-{
-	int rc;
-	pr_info("%s %s\n", __func__, power);
-	if (power == NULL)
-		return -ENODEV;
-		
-	*sensor_power = regulator_get(NULL, power);
-	
-	if (IS_ERR(*sensor_power)) {
-		pr_info("%s: failed to Unable to get %s\n", __func__, power);
-		return -ENODEV;
-	}
-	
-	rc = regulator_enable(*sensor_power);
-	if (rc < 0) {
-		pr_info("%s: failed to Enable regulator %s failed\n", __func__, power);
-		regulator_put(*sensor_power);
-		*sensor_power = NULL;
-		return -ENODEV;
-	}
-	
-	return rc;
-}
-
-static int camera_sensor_power_disable(struct regulator *sensor_power)
-{
-
-	int rc;
-	if (sensor_power == NULL)
-		return -ENODEV;
-
-	if (IS_ERR(sensor_power)) {
-		pr_info("%s: failed to Invalid requlator ptr\n", __func__);
-		return -ENODEV;
-	}
-	
-	rc = regulator_disable(sensor_power);
-	if (rc < 0) {
-		pr_info("%s: disable regulator failed\n", __func__);
-		regulator_put(sensor_power);
-		sensor_power = NULL;
-		return -ENODEV;
-	}
-	regulator_put(sensor_power);
-	sensor_power = NULL;
-	return rc;
-}
-
-static uint32_t camera_off_gpio_table_liteon[] = {
-	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_SP3D_MCLK, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_INT, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_S5K4E1_VCM_PD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_S5K4E1_INTB, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_S5K4E1_PD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_WEBCAM_RST, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_WEBCAM_STB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_CAM_SEL, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-};
-
-static uint32_t camera_on_gpio_table_liteon[] = {
-	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_SP3D_MCLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_INT, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_S5K4E1_VCM_PD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_S5K4E1_INTB, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_S5K4E1_PD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_WEBCAM_RST, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_WEBCAM_STB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_CAM_SEL, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-};
-
-static uint32_t camera_off_gpio_table_sp3d[] = {
-	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_SP3D_MCLK, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_INT, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_CORE_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SYS_RST, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_PDX, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_WEBCAM_RST, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_WEBCAM_STB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_CAM_SEL, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-};
-
-static uint32_t camera_on_gpio_table_sp3d[] = {
-	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_SP3D_MCLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_INT, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_CORE_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SYS_RST, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SP3D_PDX, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_WEBCAM_RST, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_WEBCAM_STB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_CAM_SEL, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 };
 
 #ifdef CONFIG_SP3D
-static uint32_t sp3d_spi_gpio[] = {
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DO, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_DI, 1, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CS, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_U_SP3D_SPI_CLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+static struct msm_camera_sensor_flash_data flash_sp3d = {
+	.flash_type		= MSM_CAMERA_FLASH_LED,
+	.flash_src		= &msm_flash_src
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_sp3d_data = {
+	.sensor_name	= "sp3d",
+	.vcm_enable		= 0,
+	.camera_power_on = Shooter_U_sp3d_vreg_on,
+	.camera_power_off = Shooter_U_sp3d_vreg_off,
+	.camera_clk_switch = Shooter_U_maincam_clk_switch,
+	.pdata			= &msm_camera_device_data,
+	.resource		= msm_camera_resources,
+	.num_resources	= ARRAY_SIZE(msm_camera_resources),
+	.flash_data		= &flash_sp3d,
+	.flash_cfg = &msm_camera_sensor_flash_cfg,
+	.stereo_low_cap_limit = 15,
+	.mirror_mode = 0,
+	.csi_if		= 1,
+	.dev_node	= 0
+};
+
+struct platform_device msm_camera_sensor_sp3d = {
+	.name	= "msm_camera_sp3d",
+	.dev	= {
+		.platform_data = &msm_camera_sensor_sp3d_data,
+	},
 };
 #endif
+
+#ifdef CONFIG_QS_S5K4E1
+static char eeprom_data[864];
+static struct msm_camera_sensor_flash_data flash_qs_s5k4e1 = {
+	.flash_type		= MSM_CAMERA_FLASH_LED,
+	.flash_src		= &msm_flash_src
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_qs_s5k4e1_data = {
+	.sensor_name	= "qs_s5k4e1",
+	.sensor_reset	= SHOOTER_U_S5K4E1_PD,
+	.vcm_enable		= 0,
+	.camera_power_on = Shooter_U_qs_s5k4e1_vreg_on,
+	.camera_power_off = Shooter_U_qs_s5k4e1_vreg_off,
+	.camera_clk_switch = Shooter_U_maincam_clk_switch,
+	.pdata			= &msm_camera_device_data,
+	.resource		= msm_camera_resources,
+	.num_resources	= ARRAY_SIZE(msm_camera_resources),
+	.flash_data		= &flash_qs_s5k4e1,
+	.flash_cfg = &msm_camera_sensor_flash_cfg,
+	.stereo_low_cap_limit = 15,
+	.csi_if			= 1,
+	.dev_node		= 0,
+	.eeprom_data	= eeprom_data,
+};
+struct platform_device msm_camera_sensor_qs_s5k4e1 = {
+	.name	= "msm_camera_qs_s5k4e1",
+	.dev	= {
+		.platform_data = &msm_camera_sensor_qs_s5k4e1_data,
+	},
+};
+#endif
+
+static struct msm_camera_sensor_flash_data flash_s5k6aafx = {
+	.flash_type		= MSM_CAMERA_FLASH_NONE,
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_s5k6aafx_data = {
+	.sensor_name	= "s5k6aafx",
+	.sensor_reset	= SHOOTER_U_WEBCAM_RST,/*2nd Cam RST*/
+	.sensor_pwd		= SHOOTER_U_WEBCAM_STB,/*2nd Cam PWD*/
+	.vcm_enable		= 0,
+	.camera_power_on = Shooter_U_s5k6aafx_vreg_on,
+	.camera_power_off = Shooter_U_s5k6aafx_vreg_off,
+	.camera_clk_switch = Shooter_U_seccam_clk_switch,
+	.pdata			= &msm_camera_device_data_web_cam,
+	.resource		= msm_camera_resources,
+	.num_resources	= ARRAY_SIZE(msm_camera_resources),
+	.flash_data             = &flash_s5k6aafx,
+	.mirror_mode = 0,
+	.csi_if		= 1,
+	.dev_node	= 1
+};
+
+static struct i2c_board_info msm_camera_boardinfo[] __initdata = {
+	{
+		I2C_BOARD_INFO("s5k6aafx", 0x78 >> 1),
+	},
+	{
+		I2C_BOARD_INFO("s5k6aafx", 0x5a >> 1), /* COB type */
+	},
+	#ifdef CONFIG_QS_S5K4E1
+	{
+		I2C_BOARD_INFO("qs_s5k4e1", 0x20),
+	},
+	#endif
+};
 
 static void config_gpio_table(uint32_t *table, int len)
 {
@@ -459,183 +825,7 @@ static void config_gpio_table(uint32_t *table, int len)
 	}
 }
 
-static int shooter_u_config_camera_on_gpios(void)
-{
-
-	if (system_rev == 0x80) {
-		config_gpio_table(camera_on_gpio_table_liteon,
-			ARRAY_SIZE(camera_on_gpio_table_liteon));
-	} else {
-		config_gpio_table(camera_on_gpio_table_sp3d,
-			ARRAY_SIZE(camera_on_gpio_table_sp3d));
-	}
-
-	return 0;
-}
-
-static void shooter_u_config_camera_off_gpios(void)
-{
-	if (system_rev == 0x80) {
-		config_gpio_table(camera_off_gpio_table_liteon,
-			ARRAY_SIZE(camera_off_gpio_table_liteon));
-	} else {
-		config_gpio_table(camera_off_gpio_table_sp3d,
-			ARRAY_SIZE(camera_off_gpio_table_sp3d));
-	}
-	gpio_set_value(SHOOTER_U_SP3D_SPI_DO, 0);
-	gpio_set_value(SHOOTER_U_SP3D_SPI_CS, 0);
-	gpio_set_value(SHOOTER_U_SP3D_SPI_CLK, 0);
-	gpio_set_value(SHOOTER_U_SP3D_MCLK, 0);
-	gpio_set_value(SHOOTER_U_CAM_SEL, 0);
-}
-
-#ifdef CONFIG_S5K4E1
-static int shooter_u_qs_s5k4e1_vreg_on(void)
-{
-	int rc = 0;
-	pr_info("[CAM] %s %x\n", __func__, system_rev);
-	mdelay(50);
-		
-	rc = camera_sensor_power_enable("8058_l15", 2800000, &shooter_u_reg_8058_l15);
-	pr_info("[CAM] sensor_power_enable(\"8058_l15\", 2.8V) == %d\n", rc);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_enable(\"8058_l15\", 2.8V) FAILED %d\n", rc);
-		goto init_fail;
-	}
-	udelay(50);
-		
-	if (system_rev == 0x80) {
-		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
-		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(10);
-
-		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
-		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-	} else {
-		rc = camera_sensor_power_enable("8058_l9", 1800000, &shooter_u_reg_8058_l9);
-		pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8058_l9\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-		
-		rc = camera_sensor_power_enable("8058_l8", 1800000, &shooter_u_reg_8058_l8);
-		pr_info("[CAM] sensor_power_enable(\"8058_l8\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8058_l8\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-	}
-	udelay(50);
-	
-	rc = camera_sensor_power_enable("8058_l10", 2800000, &shooter_u_reg_8058_l10);
-	pr_info("[CAM] sensor_power_enable(\"8058_l10\", 2.8V) == %d\n", rc);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_enable(\"8058_l10\", 2.8V) FAILED %d\n", rc);
-		goto init_fail;
-	}
-	udelay(50);
-	
-	gpio_set_value(SHOOTER_U_S5K4E1_INTB, 1);
-	gpio_set_value(SHOOTER_U_S5K4E1_PD, 1);
-	gpio_set_value(SHOOTER_U_S5K4E1_VCM_PD, 1);
-	
-	shooter_u_config_camera_on_gpios();
-	
-	rc = gpio_request(SHOOTER_U_SP3D_MCLK, "CAM_SEL");
-	if (rc < 0)
-	{
-		pr_err("[CAM] GPIO (%d) request fail\n", SHOOTER_U_SP3D_MCLK);
-		goto init_fail;
-	}
-	gpio_direction_output(SHOOTER_U_SP3D_MCLK, 1);
-	gpio_free(SHOOTER_U_SP3D_MCLK);
-
-init_fail:
-	return rc;
-}
-
-static int shooter_u_qs_s5k4e1_vreg_off(void)
-{
-	int rc = 0;
-//	pr_info("[CAM] %s\n", __func__, system_rev);
-	gpio_set_value(SHOOTER_U_S5K4E1_INTB, 0);
-	gpio_set_value(SHOOTER_U_S5K4E1_VCM_PD, 0);
-	gpio_set_value(SHOOTER_U_S5K4E1_PD, 0);
-	
-	rc = camera_sensor_power_disable(shooter_u_reg_8058_l10);
-	pr_info("[CAM] camera_sensor_power_disable(\"8058_l10\", 2.8V) == %d\n", rc);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_disable(\"8058_l10\") FAILED %d\n", rc);
-		goto init_fail;
-	}
-	udelay(50);
-
-	if (system_rev == 0x80) {
-		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs2);
-		pr_info("[CAM] camera_sensor_power_disable(\"8901_lvs2\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8901_lvs2\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(10);
-
-		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs3);
-		pr_info("[CAM] camera_sensor_power_disable(\"8901_lvs3\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8901_lvs3\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-	} else {
-		rc = camera_sensor_power_disable(shooter_u_reg_8058_l9);
-		pr_info("[CAM] camera_sensor_power_disable(\"8058_l9\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8058_l9\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-
-		rc = camera_sensor_power_disable(shooter_u_reg_8058_l8);
-		pr_info("[CAM] camera_sensor_power_disable(\"8058_l8\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8058_l8\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-	}
-
-	if (!(system_rev == 0x80)) {
-		rc = camera_sensor_power_disable(shooter_u_reg_8058_l15);
-		pr_info("[CAM] camera_sensor_power_disable(\"8058_l15\", 2.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8058_l15\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		udelay(50);
-	}
-
-	shooter_u_config_camera_off_gpios();
-
-	pr_info("[CAM] Doing clk switch to sleep state\n");
-	rc = gpio_request(SHOOTER_U_SP3D_MCLK, "CAM_SEL");
-	if (rc < 0)
-	{
-		pr_err("[CAM] GPIO (%d) request fail\n", SHOOTER_U_SP3D_MCLK);
-		goto init_fail;
-	}
-	gpio_direction_output(SHOOTER_U_SP3D_MCLK, 0);
-	gpio_free(SHOOTER_U_SP3D_MCLK);
-
-init_fail:
-		return rc;
-}
-
+#ifdef CONFIG_QS_S5K4E1_ACT
 static struct i2c_board_info qs_s5k4e1_actuator_i2c_info = {
 	I2C_BOARD_INFO("qs_s5k4e1_act", 0x11),
 };
@@ -643,7 +833,7 @@ static struct i2c_board_info qs_s5k4e1_actuator_i2c_info = {
 static struct msm_actuator_info qs_s5k4e1_actuator_info = {
 	.board_info     = &qs_s5k4e1_actuator_i2c_info,
 	.bus_id         = MSM_GSBI4_QUP_I2C_BUS_ID,
-//	.vcm_pwd        = SHOOTER_U_GPIO_CAM_VCM_PD,
+	.vcm_pwd        = SHOOTER_U_GPIO_CAM_VCM_PD,
 };
 #endif
 
@@ -658,405 +848,6 @@ static struct camera_flash_cfg msm_camera_sensor_qs_s5k4e1_flash_cfg = {
 	.low_temp_limit		= 10,
 	.low_cap_limit		= 15,
 };
-
-static struct msm_camera_sensor_flash_data flash_qs_s5k4e1 = {
-	.flash_type	= MSM_CAMERA_FLASH_LED,
-#ifdef CONFIG_MSM_CAMERA_FLASH
-	.flash_src	= &msm_flash_src,
-#endif
-};
-
-static struct msm_camera_sensor_info msm_camera_sensor_qs_s5k4e1_data = {
-	.sensor_name	= "qs_s5k4e1",
-	.camera_power_on = shooter_u_qs_s5k4e1_vreg_on,
-	.camera_power_off = shooter_u_qs_s5k4e1_vreg_off,
-	.pdata	= &msm_camera_csi_device_data[0],
-	.flash_data	= &flash_qs_s5k4e1,
-	.sensor_platform_info = &sensor_qs_s5k4e1_board_info,
-	.csi_if	= 1,
-	.camera_type = BACK_CAMERA_2D,
-//#ifdef CONFIG_QS_S5K4E1_ACT
-	.actuator_info = &qs_s5k4e1_actuator_info,
-//#endif
-	.use_rawchip = RAWCHIP_DISABLE,
-	.flash_cfg = &msm_camera_sensor_qs_s5k4e1_flash_cfg,
-};
-
-#ifdef CONFIG_SP3D
-static int shooter_u_sp3d_vreg_on(void)
-{
-	int rc = 0;
-	pr_info("[CAM] %s %d\n", __func__, system_rev);
-
-	if (system_rev == 0x80) {
-		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
-		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-		udelay(26);
-
-		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
-		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-	} else {
-		rc = camera_sensor_power_enable("8058_l8", 1800000, &shooter_u_reg_8058_l8);
-		pr_info("[CAM] sensor_power_enable(\"8058_l8\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8058_l8\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-		udelay(26);
-
-		rc = camera_sensor_power_enable("8058_l9", 1800000, &shooter_u_reg_8058_l9);
-		pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8058_l9\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-	}
-	
-	gpio_set_value(SHOOTER_U_SP3D_CORE_GATE, 1);
-	gpio_set_value(SHOOTER_U_SP3D_SYS_RST, 1);
-	gpio_set_value(SHOOTER_U_SP3D_PDX, 1);
-	gpio_set_value(SHOOTER_U_SP3D_GATE, 1);
-	
-	rc = camera_sensor_power_enable("8058_l15", 2800000, &shooter_u_reg_8058_l15);
-	pr_info("[CAM] sensor_power_enable(\"8058_l15\", 2.8V) == %d\n", rc);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_enable(\"8058_l15\", 2.8V) FAILED %d\n", rc);
-		goto init_fail;
-	}
-
-	rc = camera_sensor_power_enable("8058_l10", 2800000, &shooter_u_reg_8058_l10);
-	pr_info("[CAM] sensor_power_enable(\"8058_l10\", 2.8V) == %d\n", rc);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_enable(\"8058_l10\", 2.8V) FAILED %d\n", rc);
-		goto init_fail;
-	}
-	
-	gpio_tlmm_config(sp3d_spi_gpio[0], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(sp3d_spi_gpio[1], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(sp3d_spi_gpio[2], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(sp3d_spi_gpio[3], GPIO_CFG_ENABLE);
-	
-	shooter_u_config_camera_on_gpios();
-	
-	rc = gpio_request(SHOOTER_U_SP3D_MCLK, "CAM_SEL");
-	if (rc < 0)
-	{
-		pr_err("[CAM] GPIO (%d) request fail\n", SHOOTER_U_SP3D_MCLK);
-		goto init_fail;
-	}
-	gpio_direction_output(SHOOTER_U_SP3D_MCLK, 1);
-	gpio_free(SHOOTER_U_SP3D_MCLK);
-
-init_fail:
-	return rc;
-}
-
-static int shooter_u_sp3d_vreg_off(void)
-{
-	int rc = 0;
-	pr_info("[CAM] %s\n", __func__);
-	gpio_set_value(SHOOTER_U_SP3D_PDX, 0);
-
-	rc = camera_sensor_power_disable(shooter_u_reg_8058_l10);
-	pr_info("[CAM] camera_sensor_power_disable(\"8058_l10\", 2.8V) == %d\n", rc);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_disable(\"8058_l10\") FAILED %d\n", rc);
-		goto init_fail;
-	}
-	udelay(10);
-	
-	if (!(system_rev == 0x80)) {
-		rc = camera_sensor_power_disable(shooter_u_reg_8058_l15);
-		pr_info("[CAM] camera_sensor_power_disable(\"8058_l15\", 2.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8058_l15\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		udelay(10);
-	}
-
-	if (system_rev == 0x80)
-		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs3);
-		pr_info("[CAM] camera_sensor_power_disable(\"8901_lvs3\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8901_lvs3\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-	else
-		rc = camera_sensor_power_disable(shooter_u_reg_8058_l9);
-		pr_info("[CAM] camera_sensor_power_disable(\"8058_l9\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8058_l9\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		
-	gpio_set_value(SHOOTER_U_SP3D_SYS_RST, 0);
-	gpio_set_value(SHOOTER_U_SP3D_CORE_GATE, 0);
-	gpio_set_value(SHOOTER_U_SP3D_GATE, 0);
-	
-	if (system_rev == 0x80)
-		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs2);
-		pr_info("[CAM] camera_sensor_power_disable(\"8901_lvs2\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8901_lvs2\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-	else
-		rc = camera_sensor_power_disable(shooter_u_reg_8058_l8);
-		pr_info("[CAM] camera_sensor_power_disable(\"8058_l8\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8058_l8\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		
-	shooter_u_config_camera_off_gpios();
-
-	pr_info("[CAM] Doing clk switch to sleep state\n");
-	rc = gpio_request(SHOOTER_U_SP3D_MCLK, "CAM_SEL");
-	if (rc < 0)
-	{
-		pr_err("[CAM] GPIO (%d) request fail\n", SHOOTER_U_SP3D_MCLK);
-		goto init_fail;
-	}
-	gpio_direction_output(SHOOTER_U_SP3D_MCLK, 0);
-	gpio_free(SHOOTER_U_SP3D_MCLK);
-
-init_fail:
-		return rc;
-}
-
-#ifdef CONFIG_SP3D_ACT
-static struct i2c_board_info sp3d_actuator_i2c_info = {
-	I2C_BOARD_INFO("sp3d_act", 0x18),
-};
-
-static struct msm_actuator_info sp3d_actuator_info = {
-	.board_info     = &sp3d_actuator_i2c_info,
-	.bus_id         = MSM_GSBI4_QUP_I2C_BUS_ID,
-	.vcm_pwd        = SHOOTER_U_GPIO_CAM_VCM_PD,
-};
-#endif
-
-static struct msm_camera_sensor_platform_info sensor_sp3d_board_info = {
-	.mount_angle = 90,
-	.mirror_flip = CAMERA_SENSOR_MIRROR_FLIP,
-	.sensor_reset_enable = 1,
-	.sensor_reset	= SHOOTER_U_SP3D_SYS_RST,
-};
-
-static struct camera_flash_cfg msm_camera_sensor_sp3d_flash_cfg = {
-	.low_temp_limit		= 10,
-	.low_cap_limit		= 15,
-};
-
-static struct msm_camera_sensor_flash_data flash_sp3d = {
-	.flash_type	= MSM_CAMERA_FLASH_LED,
-#ifdef CONFIG_MSM_CAMERA_FLASH
-	.flash_src	= &msm_flash_src,
-#endif
-};
-
-static struct msm_camera_sensor_info msm_camera_sensor_sp3d_data = {
-	.sensor_name	= "sp3d",
-	.camera_power_on = shooter_u_sp3d_vreg_on,
-	.camera_power_off = shooter_u_sp3d_vreg_off,
-	.pdata	= &msm_camera_csi_device_data[0],
-	.flash_data	= &flash_sp3d,
-	.sensor_platform_info = &sensor_sp3d_board_info,
-	.csi_if	= 1,
-	.camera_type = BACK_CAMERA_3D,
-#ifdef CONFIG_SP3D_ACT
-	.actuator_info = &sp3d_actuator_info,
-#endif
-	.use_rawchip = RAWCHIP_DISABLE,
-	.flash_cfg = &msm_camera_sensor_sp3d_flash_cfg,
-};
-
-struct platform_device msm_camera_sensor_sp3d = {
-	.name	= "msm_camera_sp3d",
-	.dev	= {
-		.platform_data = &msm_camera_sensor_sp3d_data,
-	},
-};
-
-#endif
-
-#ifdef CONFIG_S5K6AAFX
-static int shooter_u_s5k6aafx_vreg_on(void)
-{
-	int rc = 0;
-	pr_info("[CAM] %s\n", __func__);
-	
-	rc = camera_sensor_power_enable("8901_l6", 2850000, &shooter_u_reg_8901_l6);
-	pr_info("[CAM] sensor_power_enable(\"8901_l6\", 2.8V) == %d\n", rc);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_enable(\"8901_l6\", 2.8V) FAILED %d\n", rc);
-		goto init_fail;
-	}
-	mdelay(5);
-	
-	if (system_rev == 0x80) {
-		rc = camera_sensor_power_enable_8901("8901_lvs2", &shooter_u_reg_8901_lvs2);
-		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8901_lvs2\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(10);
-
-		rc = camera_sensor_power_enable_8901("8901_lvs3", &shooter_u_reg_8901_lvs3);
-		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8901_lvs3\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-	} else {
-		rc = camera_sensor_power_enable("8058_l8", 1800000, &shooter_u_reg_8058_l8);
-		pr_info("[CAM] sensor_power_enable(\"8058_l8\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8058_l8\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(5);
-
-		rc = camera_sensor_power_enable("8058_l9", 1800000, &shooter_u_reg_8058_l9);
-		pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_enable(\"8058_l9\", 1.8V) FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(1);
-	}
-	
-	shooter_u_config_camera_on_gpios();
-	
-	rc = gpio_request(SHOOTER_U_CAM_SEL, "CAM_SEL");
-	if (rc < 0)
-	{
-		pr_err("[CAM] GPIO (%d) request fail\n", SHOOTER_U_CAM_SEL);
-		goto init_fail;
-	}
-	gpio_direction_output(SHOOTER_U_CAM_SEL, 1);
-	gpio_free(SHOOTER_U_CAM_SEL);
-
-init_fail:
-	return rc;
-}
-
-static int shooter_u_s5k6aafx_vreg_off(void)
-{
-	int rc = 0;
-	pr_info("[CAM] %s\n", __func__);
-	
-	if (system_rev == 0x80) {
-		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs3);
-		pr_info("[CAM] camera_sensor_power_disable(\"8901_lvs3\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8901_lvs3\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(1);
-		
-		rc = camera_sensor_power_disable(shooter_u_reg_8901_lvs2);
-		pr_info("[CAM] camera_sensor_power_disable(\"8901_lvs2\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8901_lvs2\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(1);
-	} else {
-		rc = camera_sensor_power_disable(shooter_u_reg_8058_l9);
-		pr_info("[CAM] camera_sensor_power_disable(\"8058_l9\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8058_l9\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(1);
-
-		rc = camera_sensor_power_disable(shooter_u_reg_8058_l8);
-		pr_info("[CAM] camera_sensor_power_disable(\"8058_l8\", 1.8V) == %d\n", rc);
-		if (rc < 0) {
-			pr_err("[CAM] sensor_power_disable(\"8058_l8\") FAILED %d\n", rc);
-			goto init_fail;
-		}
-		mdelay(1);
-	}
-	
-	rc = camera_sensor_power_disable(shooter_u_reg_8901_l6);
-	pr_info("[CAM] camera_sensor_power_disable(\"8901_l6\", 2.8V) == %d\n", rc);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_disable(\"8901_l6\") FAILED %d\n", rc);
-		goto init_fail;
-	}
-	
-	shooter_u_config_camera_off_gpios();
-
-	pr_info("[CAM] Doing clk switch to sleep state\n");
-	rc = gpio_request(SHOOTER_U_CAM_SEL, "CAM_SEL");
-	if (rc < 0)
-	{
-		pr_err("[CAM] GPIO (%d) request fail\n", SHOOTER_U_CAM_SEL);
-		goto init_fail;
-	}
-	gpio_direction_output(SHOOTER_U_CAM_SEL, 0);
-	gpio_free(SHOOTER_U_CAM_SEL);
-
-init_fail:
-		return rc;
-}
-
-static struct msm_camera_sensor_platform_info sensor_s5k6aafx_board_info = {
-	.mount_angle = 270,
-	.mirror_flip = CAMERA_SENSOR_NONE,
-	.sensor_reset_enable = 1,
-	.sensor_reset = SHOOTER_U_WEBCAM_RST,
-};
-
-static struct msm_camera_sensor_flash_data flash_s5k6aafx = {
-	.flash_type	= MSM_CAMERA_FLASH_NONE,
-};
-
-static struct msm_camera_sensor_info msm_camera_sensor_s5k6aafx_data = {
-	.sensor_name	= "s5k6aafx",
-	.sensor_reset	= SHOOTER_U_WEBCAM_RST,
-	.camera_power_on = shooter_u_s5k6aafx_vreg_on,
-	.camera_power_off = shooter_u_s5k6aafx_vreg_off,
-	.pdata	= &msm_camera_csi_device_data[1],
-	.flash_data	= &flash_s5k6aafx,
-	.sensor_platform_info = &sensor_s5k6aafx_board_info,
-	.csi_if	= 1,
-	.camera_type = FRONT_CAMERA_2D,
-	.use_rawchip = RAWCHIP_DISABLE, 
-};
-#endif
-
-#ifdef CONFIG_I2C
-static struct i2c_board_info msm_camera_boardinfo[] = {
-#ifdef CONFIG_S5K3H1GX
-	{
-	I2C_BOARD_INFO("qs_s5k4e1", 0x20),
-	.platform_data = &msm_camera_sensor_qs_s5k4e1_data,
-	},
-#endif
-#ifdef CONFIG_MT9V113
-	{
-	I2C_BOARD_INFO("s5k6aafx", 0x78 >> 1),
-	.platform_data = &msm_camera_sensor_s5k6aafx_data,
-	},
-	{
-	I2C_BOARD_INFO("s5k6aafx", 0x5a >> 1),
-	},
-#endif
-};
-#endif
 
 void __init msm8x60_init_cam(void)
 {
