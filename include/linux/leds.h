@@ -65,6 +65,7 @@ struct led_classdev {
 #endif
 };
 
+extern void led_brightness_switch(const char * const led_name, const enum led_brightness brightness);
 extern void led_brightness_value_set(char *led_name, int value);
 extern int led_brightness_value_get(char *led_name);
 

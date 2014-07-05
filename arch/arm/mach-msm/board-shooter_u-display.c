@@ -1,5 +1,6 @@
 /* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
  * Copyright (c) 2014 Jaka Valenko <jaka.valenko6@gmail.com>
+ * Copyright (c) 2014 Jakub Skopal <jakub.skopal1@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -19,55 +20,129 @@
 #include <mach/gpio.h>
 #include <mach/panel_id.h>
 #include <mach/msm_bus_board.h>
-#include <linux/leds.h>
 #include <linux/mfd/pmic8058.h>
+#include <linux/leds.h>
+#include <linux/pwm.h>
+#include <linux/pmic8058-pwm.h>
 #include <mach/debug_display.h>
 
 #include "devices.h"
 #include "board-shooter_u.h"
 
+enum MODE_3D {
+	BARRIER_OFF       = 0,
+	BARRIER_LANDSCAPE = 1,
+	BARRIER_PORTRAIT  = 2,
+	BARRIER_END
+};
+
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+/* prim = 960 x 540 x 4(bpp) x 3(pages) */
 #define MSM_FB_PRIM_BUF_SIZE (960 * ALIGN(540, 32) * 4 * 3)
 #else
+/* prim = 960 x 540 x 4(bpp) x 2(pages) */
 #define MSM_FB_PRIM_BUF_SIZE (960 * ALIGN(540, 32) * 4 * 2)
 #endif
 
+#define MSM_OVERLAY_BLT_SIZE   roundup(960 * ALIGN(540, 32) * 3 * 2, 4096)
+#define MSM_PMEM_SF_SIZE 0x4000000 /* 64 Mbytes */
+#define MSM_PMEM_SF_BASE		(0x70000000 - MSM_PMEM_SF_SIZE)
+#define MSM_OVERLAY_BLT_BASE	(MSM_PMEM_SF_BASE - MSM_OVERLAY_BLT_SIZE)
+
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+/* prim = 1024 x 600 x 4(bpp) x 2(pages)
+ * hdmi = 1920 x 1080 x 2(bpp) x 1(page)
+ * Note: must be multiple of 4096 */
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + 0x3F4800 + MSM_FB_DSUB_PMEM_ADDER, 4096)
 #elif defined(CONFIG_FB_MSM_TVOUT)
+/* prim = 1024 x 600 x 4(bpp) x 2(pages)
+ * tvout = 720 x 576 x 2(bpp) x 2(pages)
+ * Note: must be multiple of 4096 */
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + 0x195000 + MSM_FB_DSUB_PMEM_ADDER, 4096)
-#else
+#else /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_DSUB_PMEM_ADDER, 4096)
-#endif
-#define MSM_FB_BASE             0x6B000000
+#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
+
+#define MSM_FB_BASE           0x4000000
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((960 * ALIGN(540, 32) * 3 * 2), 4096)
+/* width x height x 3 bpp x 2 frame buffer */
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup(960 * ALIGN(540, 32) * 3 * 2, 4096)
 #else
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE 0
 #endif
 
 #define PANEL_ID_SHR_SHARP_NT	(0x26 | BL_MIPI | IF_MIPI | DEPTH_RGB888)
 #define PANEL_ID_SHR_SHARP_OTM (0x2D | BL_MIPI | IF_MIPI | DEPTH_RGB888)
 #define PANEL_ID_SHR_SHARP_OTM_C2 (0x2D | BL_MIPI | IF_MIPI | DEPTH_RGB888 | REV_1)
 
-#define HDMI_PANEL_NAME	"hdmi_msm"
+#define HDMI_PANEL_NAME "hdmi_msm"
+
+atomic_t g_3D_mode = ATOMIC_INIT(BARRIER_OFF);
+static struct pwm_device *pwm_3d = NULL;
+struct kobject *kobj, *uevent_kobj;
+struct kset *uevent_kset;
+
+void mdp_color_enhancement(const struct mdp_reg *reg_seq, int size);
+static struct pm_gpio pwm_gpio_config = {
+		.direction	= PM_GPIO_DIR_OUT,
+		.output_value	= 0,
+		.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
+		.pull		= PM_GPIO_PULL_NO,
+		.out_strength	= PM_GPIO_STRENGTH_HIGH,
+		.function	= PM_GPIO_FUNC_NORMAL,
+		.vin_sel	= PM8058_GPIO_VIN_L5,
+		.inv_int_pol	= 0,
+};
+
+static struct pm_gpio clk_gpio_config_on = {
+				.direction	= PM_GPIO_DIR_OUT,
+				.output_value	= 1,
+				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
+				.pull		= PM_GPIO_PULL_NO,
+				.out_strength	= PM_GPIO_STRENGTH_HIGH,
+				.function	= PM_GPIO_FUNC_2,
+				.vin_sel	= PM8058_GPIO_VIN_L5,
+				.inv_int_pol	= 0,
+};
+
+static struct pm_gpio clk_gpio_config_off = {
+				.direction	= PM_GPIO_DIR_OUT,
+				.output_value	= 0,
+				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
+				.pull		= PM_GPIO_PULL_NO,
+				.out_strength	= PM_GPIO_STRENGTH_HIGH,
+				.function	= PM_GPIO_FUNC_NORMAL,
+				.vin_sel	= PM8058_GPIO_VIN_L5,
+				.inv_int_pol	= 0,
+};
+
 
 static int msm_fb_detect_panel(const char *name)
 {
-	if (!strncmp(name, HDMI_PANEL_NAME,
-			strnlen(HDMI_PANEL_NAME,
-				PANEL_NAME_MAX_LEN))) {
-		return 0;
+	if (panel_type == PANEL_ID_SHR_SHARP_NT) {
+		if (!strcmp(name, "mipi_cmd_novatek_qhd"))
+			return 0;
+	} else if (panel_type == PANEL_ID_SHR_SHARP_OTM ||
+		panel_type == PANEL_ID_SHR_SHARP_OTM_C2) {
+		if (!strcmp(name, "mipi_cmd_orise_qhd"))
+			return 0;
 	}
 
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+	else if (!strcmp(name, "hdmi_msm"))
+		return 0;
+#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
+
+	pr_warning("%s: not supported '%s'", __func__, name);
 	return -ENODEV;
-};
+}
 
 static struct resource msm_fb_resources[] = {
 	{
 		.flags  = IORESOURCE_DMA,
 	},
+	/* for overlay write back operation */
 	{
 		.flags  = IORESOURCE_DMA,
 	},
@@ -91,10 +166,16 @@ void __init shooter_u_allocate_fb_region(void)
 	unsigned long size;
 
 	size = MSM_FB_SIZE;
-  msm_fb_resources[0].start = MSM_FB_BASE;
+	msm_fb_resources[0].start = MSM_FB_BASE;
 	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
-  pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for fb\n",
-    size, __va(MSM_FB_BASE), (unsigned long) MSM_FB_BASE);
+	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for fb\n",
+		size, __va(MSM_FB_BASE), (unsigned long) MSM_FB_BASE);
+
+	size = MSM_OVERLAY_BLT_SIZE;
+	msm_fb_resources[1].start = MSM_OVERLAY_BLT_BASE;
+	msm_fb_resources[1].end = msm_fb_resources[1].start + size - 1;
+	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for overlay\n",
+		size, __va(MSM_OVERLAY_BLT_BASE), (unsigned long) msm_fb_resources[1].start);
 }
 
 #ifdef CONFIG_MSM_BUS_SCALING
@@ -240,14 +321,14 @@ static struct msm_bus_vectors dtv_bus_def_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_SMI,
-		.ab = 252979200,
-		.ib = 505958400,
+		.ab = 566092800 *2,
+		.ib = 707616000 *2,
 	},
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 421632000,
-		.ib = 843264000,
+		.ab = 566092800 *2,
+		.ib = 707616000 *2,
 	},
 };
 
@@ -820,8 +901,8 @@ struct mdp_reg mdp_sharp_barrier_off[] = {
 
 int shooter_u_mdp_gamma(void)
 {
-  mdp_color_enhancement(shooter_u_color_v11, ARRAY_SIZE(shooter_u_color_v11));
-  mdp_color_enhancement(mdp_sharp_barrier_off, ARRAY_SIZE(mdp_sharp_barrier_off));
+	/*mdp_color_enhancement(shooter_u_color_v11, ARRAY_SIZE(shooter_u_color_v11));*/
+	mdp_color_enhancement(mdp_sharp_barrier_off, ARRAY_SIZE(mdp_sharp_barrier_off));
 
 	return 0;
 }
@@ -847,98 +928,117 @@ static int first_init = 1;
 
 static int mipi_dsi_panel_power(const int on)
 {
-	static bool dsi_power_on = false;
-    static struct regulator *l12_3v;
-    static struct regulator *lvs1_1v8;
-    int rc;
 
-	if (!dsi_power_on) {
-		if (panel_type == PANEL_ID_SHR_SHARP_OTM ||
-			panel_type == PANEL_ID_SHR_SHARP_OTM_C2)
+	static struct regulator *l12_3v;
+	static struct regulator *lvs1_1v8;
+	int rc;
+	int ret;
+	int init = 0;
+	static int isorise = 0;
 
+	if (panel_type == PANEL_ID_SHR_SHARP_OTM ||
+		panel_type == PANEL_ID_SHR_SHARP_OTM_C2)
+		isorise = 1;
+	/* If panel is already on (or off), do nothing. */
+	if (!init) {
 		l12_3v = regulator_get(NULL, "8058_l12");
 		if (IS_ERR(l12_3v)) {
-			PR_DISP_ERR("%s: unable to get 8058_l12\n", __func__);
-			return -ENODEV;
+			pr_err("%s: unable to get 8058_l12\n", __func__);
+			goto fail;
 		}
 
 		lvs1_1v8 = regulator_get(NULL, "8901_lvs1");
 		if (IS_ERR(lvs1_1v8)) {
-			PR_DISP_ERR("%s: unable to get 8901_lvs1\n", __func__);
-			return -ENODEV;
+			pr_err("%s: unable to get 8901_lvs1\n", __func__);
+			goto fail;
 		}
-		
-		if (panel_type == PANEL_ID_SHR_SHARP_NT) {
-			rc = regulator_set_voltage(l12_3v, 3000000, 3000000);
+
+		if (isorise == 0)
+			ret = regulator_set_voltage(l12_3v, 3000000, 3000000);
+		else
+			ret = regulator_set_voltage(l12_3v, 3200000, 3200000);
+		if (ret) {
+			pr_err("%s: error setting l12_3v voltage\n", __func__);
+			goto fail;
 		}
-		else {
-			rc = regulator_set_voltage(l12_3v, 3200000, 3200000);
-			if (rc) {
-				PR_DISP_ERR("%s: error setting l12_3v voltage\n", __func__);
-				return -EINVAL;
-			}
-		}
-		
-		rc = gpio_request(GPIO_LCM_RST_N, "LCM_RST_N");
+
+		/* LCM Reset */
+		rc = gpio_request(GPIO_LCM_RST_N,
+				"LCM_RST_N");
 		if (rc) {
-			PR_DISP_ERR("%s:LCM gpio %d request"
+			printk(KERN_ERR "%s:LCM gpio %d request"
 					"failed\n", __func__,
 					GPIO_LCM_RST_N);
 			return -EINVAL;
 		}
-		
-		dsi_power_on = true;
+
+		init = 1;
 	}
-	
+
 	if (!l12_3v || IS_ERR(l12_3v)) {
-		PR_DISP_ERR("%s: l12_3v is not initialized\n", __func__);
+		pr_err("%s: l12_3v is not initialized\n", __func__);
 		return -ENODEV;
 	}
 
-		if (!lvs1_1v8 || IS_ERR(lvs1_1v8)) {
-		PR_DISP_ERR("%s: lvs1_1v8 is not initialized\n", __func__);
+	if (!lvs1_1v8 || IS_ERR(lvs1_1v8)) {
+		pr_err("%s: lvs1_1v8 is not initialized\n", __func__);
 		return -ENODEV;
 	}
-	
+
 	if (on) {
 		if (regulator_enable(l12_3v)) {
-			PR_DISP_ERR("%s: Unable to enable the regulator:"
+			pr_err("%s: Unable to enable the regulator:"
 					" l12_3v\n", __func__);
 			return -ENODEV;
 		}
 		hr_msleep(1);
-		
+
 		if (regulator_enable(lvs1_1v8)) {
-			PR_DISP_ERR("%s: Unable to enable the regulator:"
+			pr_err("%s: Unable to enable the regulator:"
 					" lvs1_1v8\n", __func__);
 			return -ENODEV;
 		}
+		if (init == 1) {
+			init = 2;
 
-		if (!first_init) {
-			hr_msleep(10);
+			return -ENODEV;
+		} else {
+			if (isorise == 0)
+				hr_msleep(10);
+			else
+				hr_msleep(1);
 			gpio_set_value(GPIO_LCM_RST_N, 1);
 			hr_msleep(1);
 			gpio_set_value(GPIO_LCM_RST_N, 0);
 			hr_msleep(1);
 			gpio_set_value(GPIO_LCM_RST_N, 1);
-			hr_msleep(20);
+			if (isorise == 0)
+				hr_msleep(10);
+			else
+				hr_msleep(1);
 		}
 	} else {
 		gpio_set_value(GPIO_LCM_RST_N, 0);
 		hr_msleep(1);
 		if (regulator_disable(lvs1_1v8)) {
-			PR_DISP_ERR("%s: Unable to enable the regulator:"
+			pr_err("%s: Unable to enable the regulator:"
 					" lvs1_1v8\n", __func__);
 			return -ENODEV;
 		}
 		hr_msleep(1);
 		if (regulator_disable(l12_3v)) {
-			PR_DISP_ERR("%s: Unable to enable the regulator:"
+			pr_err("%s: Unable to enable the regulator:"
 					" l12_3v\n", __func__);
 			return -ENODEV;
 		}
 	}
 
+fail:
+	if (l12_3v)
+		regulator_put(l12_3v);
+	if (lvs1_1v8)
+		regulator_put(lvs1_1v8);
+	
 	return 0;
 }
 
@@ -957,15 +1057,9 @@ static char exit_sleep[2] = {0x11, 0x00};
 static char display_off[2] = {0x28, 0x00};
 static char display_on[2] = {0x29, 0x00};
 static char enable_te[2] = {0x35, 0x00};
-static char test_reg[3] = {0x44, 0x02, 0xCF};
 static char test_reg_qhd[3] = {0x44, 0x01, 0x3f};
 static char set_twolane[2] = {0xae, 0x03};
 static char rgb_888[2] = {0x3A, 0x77};
-static char novatek_f4[2] = {0xf4, 0x55};
-static char novatek_8c[16] = {
-	0x8C, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x08, 0x08, 0x00, 0x30, 0xC0, 0xB7, 0x37};
-static char novatek_ff[2] = {0xff, 0x55 };
 static char set_width[5] = {
 	0x2A, 0x00, 0x00, 0x02, 0x1B};
 static char set_height[5] = {
@@ -980,12 +1074,6 @@ static char novatek_pwm_cp[2] = {0x09, 0x34 };
 static char novatek_pwm_cp2[2] = {0xc9, 0x01 };
 static char novatek_pwm_cp3[2] = {0xff, 0xaa };
 static char max_pktsize[2] =  {MIPI_DSI_MRPS, 0x00};
-static unsigned char bkl_enable_cmds[] = {0x53, 0x24};
-
-static struct dsi_cmd_desc novatek_display_on_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, 0,
-		sizeof(display_on), display_on},
-};
 
 static struct dsi_cmd_desc shr_sharp_cmd_on_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 10,
@@ -1004,6 +1092,8 @@ static struct dsi_cmd_desc shr_sharp_cmd_on_cmds[] = {
 		sizeof(novatek_pwm_7d), novatek_pwm_7d},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
 		sizeof(novatek_pwm_7f), novatek_pwm_7f},
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
+		sizeof(novatek_pwm_f3), novatek_pwm_f3},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
 		sizeof(novatek_pwm_cp), novatek_pwm_cp},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
@@ -1024,19 +1114,8 @@ static struct dsi_cmd_desc shr_sharp_cmd_on_cmds[] = {
 		sizeof(set_height), set_height},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
 		sizeof(rgb_888), rgb_888},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 120,
-		sizeof(test_reg), test_reg},
-	{DTYPE_MAX_PKTSIZE, 1, 0, 0, 0,
-		sizeof(novatek_f4), novatek_f4},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,
-		sizeof(novatek_8c), novatek_8c},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
-		sizeof(novatek_ff), novatek_ff},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
-		sizeof(bkl_enable_cmds), bkl_enable_cmds},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 0,
-		sizeof(display_on), display_on},
 };
+
 
 static struct dsi_cmd_desc novatek_display_off_cmds[] = {
 		{DTYPE_DCS_WRITE, 1, 0, 0, 0,
@@ -1048,6 +1127,11 @@ static struct dsi_cmd_desc novatek_display_off_cmds[] = {
 static struct dsi_cmd_desc novatek_cmd_backlight_cmds[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
 		sizeof(led_pwm1), led_pwm1},
+};
+
+static struct dsi_cmd_desc novatek_display_on_cmds[] = {
+	{DTYPE_DCS_WRITE, 1, 0, 0, 0,
+		sizeof(display_on), display_on},
 };
 
 static struct dcs_cmd_req cmdreq;
@@ -1068,16 +1152,13 @@ static int shooter_u_lcd_on(struct platform_device *pdev)
 	if (!first_init) {
 		if (mipi->mode == DSI_CMD_MODE) {
 			if (panel_type == PANEL_ID_SHR_SHARP_NT) {
-				printk(KERN_INFO "shooter_u_lcd_on PANEL_ID_SHR_SHARP_NT\n");
 				cmdreq.cmds = shr_sharp_cmd_on_cmds;
 				cmdreq.cmds_cnt = ARRAY_SIZE(shr_sharp_cmd_on_cmds);
 				cmdreq.flags = CMD_REQ_COMMIT;
 				cmdreq.rlen = 0;
 				cmdreq.cb = NULL;
-				
+
 				mipi_dsi_cmdlist_put(&cmdreq);
-			}else{
-				PR_DISP_ERR("%s: panel_type is not supported!(%d)\n", __func__, panel_type);
 			}
 		}
 	}
@@ -1130,57 +1211,12 @@ static int shooter_u_lcd_off(struct platform_device *pdev)
 #define PWM_DEFAULT			91
 #define PWM_MAX				232
 
-static struct pm_gpio pwm_gpio_config = {
-		.direction	= PM_GPIO_DIR_OUT,
-		.output_value	= 0,
-		.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
-		.pull		= PM_GPIO_PULL_NO,
-		.out_strength	= PM_GPIO_STRENGTH_HIGH,
-		.function	= PM_GPIO_FUNC_NORMAL,
-		.vin_sel	= PM8058_GPIO_VIN_L5,
-		.inv_int_pol	= 0,
-};
-
-static struct pm_gpio clk_gpio_config_on = {
-				.direction	= PM_GPIO_DIR_OUT,
-				.output_value	= 1,
-				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
-				.pull		= PM_GPIO_PULL_NO,
-				.out_strength	= PM_GPIO_STRENGTH_HIGH,
-				.function	= PM_GPIO_FUNC_2,
-				.vin_sel	= PM8058_GPIO_VIN_L5,
-				.inv_int_pol	= 0,
-};
-
-static struct pm_gpio clk_gpio_config_off = {
-				.direction	= PM_GPIO_DIR_OUT,
-				.output_value	= 0,
-				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
-				.pull		= PM_GPIO_PULL_NO,
-				.out_strength	= PM_GPIO_STRENGTH_HIGH,
-				.function	= PM_GPIO_FUNC_NORMAL,
-				.vin_sel	= PM8058_GPIO_VIN_L5,
-				.inv_int_pol	= 0,
-};
-
-enum MODE_3D {
-	BARRIER_OFF       = 0,
-	BARRIER_LANDSCAPE = 1,
-	BARRIER_PORTRAIT  = 2,
-	BARRIER_END
-};
-
-atomic_t g_3D_mode = ATOMIC_INIT(BARRIER_OFF);
-static struct pwm_device *pwm_3d = NULL;
-struct kobject *kobj, *uevent_kobj;
-struct kset *uevent_kset;
 
 unsigned char shrink_br = BRI_SETTING_MAX;
 unsigned char last_br_2d = BRI_SETTING_MAX;
 
 static unsigned char shooter_u_shrink_pwm(int val)
 {
-
 	if (val <= 0) {
 		shrink_br = 0;
 	} else if (val > 0 && (val < BRI_SETTING_MIN)) {
@@ -1198,6 +1234,8 @@ static unsigned char shooter_u_shrink_pwm(int val)
 		shrink_br = 255;
 	else
 		last_br_2d = val;
+
+	PR_DISP_DEBUG("brightness orig=%d, transformed=%d last_2d %d\n", val, shrink_br, last_br_2d);
 
 	return shrink_br;
 }
@@ -1218,7 +1256,6 @@ static void shooter_u_set_backlight(struct msm_fb_data_type *mfd)
 	cmdreq.cb = NULL;
 
 	mipi_dsi_cmdlist_put(&cmdreq);
-  return;
 }
 
 static int __devinit shooter_u_lcd_probe(struct platform_device *pdev)
@@ -1394,12 +1431,12 @@ static void shooter_u_3Dpanel_on(bool bLandscape)
 	struct pm8058_pwm_period pwm_conf;
 	int rc;
 
-	if (system_rev >= 1) {
-		pwm_gpio_config.output_value = 1;
-		rc = pm8xxx_gpio_config(PM8058_GPIO_PM_TO_SYS(SHOOTER_U_3DLCM_PD), &pwm_gpio_config);
-		if (rc < 0)
-			pr_err("%s pmic gpio config gpio %d failed\n", __func__, PM8058_GPIO_PM_TO_SYS(SHOOTER_U_3DLCM_PD));
-	}
+	led_brightness_switch("lcd-backlight", 255);
+
+	pwm_gpio_config.output_value = 1;
+	rc = pm8xxx_gpio_config(PM8058_GPIO_PM_TO_SYS(SHOOTER_U_3DLCM_PD), &pwm_gpio_config);
+	if (rc < 0)
+		pr_err("%s pmic gpio config gpio %d failed\n", __func__, PM8058_GPIO_PM_TO_SYS(SHOOTER_U_3DLCM_PD));
 
 	rc = pm8xxx_gpio_config(PM8058_GPIO_PM_TO_SYS(SHOOTER_U_3DCLK), &clk_gpio_config_on);
 	if (rc < 0)
@@ -1408,19 +1445,21 @@ static void shooter_u_3Dpanel_on(bool bLandscape)
 	pwm_disable(pwm_3d);
 	pwm_conf.pwm_size = 9;
 	pwm_conf.clk = PM_PWM_CLK_19P2MHZ;
-	pwm_conf.pre_div = PM_PWM_PDIV_3;
+	pwm_conf.pre_div = PM_PWM_PREDIVIDE_3;
 	pwm_conf.pre_div_exp = 6;
 	rc = pwm_configure(pwm_3d, &pwm_conf, 1, 255);
 	if (rc < 0)
 		pr_err("%s pmic configure %d\n", __func__, rc);
 	pwm_enable(pwm_3d);
 
-	if (bLandscape) {
+	if(bLandscape) {
+		mdp_color_enhancement(mdp_sharp_barrier_on, ARRAY_SIZE(mdp_sharp_barrier_on));
 		gpio_set_value(SHOOTER_U_CTL_3D_1, 1);
 		gpio_set_value(SHOOTER_U_CTL_3D_2, 1);
 		gpio_set_value(SHOOTER_U_CTL_3D_3, 1);
 		gpio_set_value(SHOOTER_U_CTL_3D_4, 0);
 	} else {
+		mdp_color_enhancement(mdp_sharp_barrier_on, ARRAY_SIZE(mdp_sharp_barrier_on));
 		gpio_set_value(SHOOTER_U_CTL_3D_1, 1);
 		gpio_set_value(SHOOTER_U_CTL_3D_2, 1);
 		gpio_set_value(SHOOTER_U_CTL_3D_3, 0);
@@ -1431,12 +1470,12 @@ static void shooter_u_3Dpanel_on(bool bLandscape)
 static void shooter_u_3Dpanel_off(void)
 {
 	int rc;
-	if (system_rev >= 1) {
-		pwm_gpio_config.output_value = 0;
-		rc = pm8xxx_gpio_config(PM8058_GPIO_PM_TO_SYS(SHOOTER_U_3DLCM_PD), &pwm_gpio_config);
-		if (rc < 0)
-			pr_err("%s pmic gpio config gpio %d failed\n", __func__, SHOOTER_U_3DLCM_PD);
-	}
+	pwm_gpio_config.output_value = 0;
+	rc = pm8xxx_gpio_config(PM8058_GPIO_PM_TO_SYS(SHOOTER_U_3DLCM_PD), &pwm_gpio_config);
+	if (rc < 0)
+		pr_err("%s pmic gpio config gpio %d failed\n", __func__, SHOOTER_U_3DLCM_PD);
+
+	mdp_color_enhancement(mdp_sharp_barrier_off, ARRAY_SIZE(mdp_sharp_barrier_off));
 	pwm_disable(pwm_3d);
 
 	rc = pm8xxx_gpio_config(PM8058_GPIO_PM_TO_SYS(SHOOTER_U_3DCLK), &clk_gpio_config_off);
@@ -1446,6 +1485,7 @@ static void shooter_u_3Dpanel_off(void)
 	gpio_set_value(SHOOTER_U_CTL_3D_2, 0);
 	gpio_set_value(SHOOTER_U_CTL_3D_3, 0);
 	gpio_set_value(SHOOTER_U_CTL_3D_4, 0);
+	led_brightness_switch("lcd-backlight", last_br_2d);
 }
 
 static ssize_t show_3D_mode(struct device *dev,
@@ -1492,7 +1532,7 @@ static ssize_t store_3D_mode(struct device *dev,
 
 static DEVICE_ATTR(3D_mode, 0666, show_3D_mode, store_3D_mode);
 
-static int shooter_u_3Dpanel_probe(struct platform_device *pdev)
+static int shooter_u_3Dpanel_probe(struct platform_device * pdev)
 {
 	int err = 0;
 	printk(KERN_INFO "%s\n", __func__);
@@ -1506,7 +1546,7 @@ static int shooter_u_3Dpanel_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int shooter_u_3Dpanel_remove(struct platform_device *pdev)
+static int shooter_u_3Dpanel_remove(struct platform_device * pdev)
 {
 	printk(KERN_INFO "%s\n", __func__);
 	if (pwm_3d) {
@@ -1540,3 +1580,4 @@ static void __exit shooter_u_3Dpanel_exit(void)
 
 module_init(shooter_u_3Dpanel_init);
 module_exit(shooter_u_3Dpanel_exit);
+;
