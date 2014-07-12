@@ -1100,7 +1100,7 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mdp_gamma_cool = shooter_u_mdp_gamma_cool,
 };
 
-void __init shooter_u_mdp_writeback(struct memtype_reserve* reserve_table)
+void __init shooter_u_mdp_writeback(void)
 {
 	mdp_pdata.ov0_wb_size = MSM_FB_OVERLAY0_WRITEBACK_SIZE;
 }
